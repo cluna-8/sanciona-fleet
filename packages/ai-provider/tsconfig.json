@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    // DOM aporta fetch, Response, AbortController y btoa: este paquete es una
+    // libreria portable (Worker, Node o Bun), no un Worker, asi que no depende
+    // de @cloudflare/workers-types.
+    "lib": ["ES2022", "DOM"],
+    "module": "ES2022",
+    "moduleResolution": "Bundler",
+    "types": ["@types/bun"],
+    "strict": true,
+    "skipLibCheck": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "isolatedModules": true,
+    "noEmit": true
+  },
+  "include": ["src", "test"]
+}

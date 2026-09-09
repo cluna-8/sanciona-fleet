@@ -1,0 +1,15 @@
+node_modules/
+.wrangler/
+.output/
+dist/
+*.log
+.env
+.env.local
+.DS_Store
+
+# Artefacto de la exportacion original de Lovable (no es codigo del proyecto)
+*.zip
+
+# Migracion excluida a proposito: fija una contrasena en texto plano
+# (ver docs/legacy/README.md e INVENTARIO 8.1 #1). Sigue en disco local.
+multas-export/supabase/migrations/20260903190210_6b6c8d26-fef4-4ce4-8435-32c9f1ff462b.sql

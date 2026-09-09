@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sanciona-deadlines-service",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true
+  }
+  // Sin bindings propios: este servicio no toca base de datos ni IA, solo
+  // recibe datos de entrada y devuelve plazos calculados (RF-PLAZO-*, SPEC.md §7).
+  // "bff-web" y "sanctions-service" lo invocan por HTTP interno o, en producción,
+  // por un service binding declarado en su propio wrangler.jsonc:
+  //   { "binding": "DEADLINES", "service": "sanciona-deadlines-service" }
+}

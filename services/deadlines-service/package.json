@@ -1,0 +1,21 @@
+{
+  "name": "@sanciona/deadlines-service",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@sanciona/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250906.0",
+    "@types/bun": "latest",
+    "typescript": "^5.8.3",
+    "wrangler": "^4.42.0"
+  }
+}

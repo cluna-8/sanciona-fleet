@@ -1,0 +1,13 @@
+{
+  "name": "sanciona-fleet",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "services/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "test": "bun test",
+    "test:deadlines": "cd services/deadlines-service && bun test"
+  }
+}

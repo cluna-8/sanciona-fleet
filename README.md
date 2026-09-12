@@ -21,12 +21,18 @@ obligatoria**.
 ## Estructura
 
 ```
-packages/contracts       Tipos compartidos entre servicios. Un cambio de forma
-                         es un error de compilación, no un bug en producción
-packages/ai-provider     Interfaz única de IA, con proveedor intercambiable
+apps/bff-web              Frontend en desarrollo activo (TanStack Start). Nace
+                          como copia de multas-export/, sin acoplamiento a Lovable
+packages/contracts        Tipos compartidos entre servicios. Un cambio de forma
+                          es un error de compilación, no un bug en producción
+packages/ai-provider      Interfaz única de IA, con proveedor intercambiable
 services/deadlines-service   Motor de plazos determinista (Worker)
-multas-export/           Prototipo heredado de Lovable. Referencia, no se despliega
+multas-export/            Espejo de solo lectura del export de Lovable. No se
+                          edita ni se despliega — ver docs/legacy/CAMBIOS-LOVABLE.md
 ```
+
+Plan de refactor completo (deuda técnica, estructura objetivo, 4 etapas):
+[`docs/refactor/PLAN-REFACTOR-FRONTEND.md`](docs/refactor/PLAN-REFACTOR-FRONTEND.md).
 
 Método: **spec-driven**. La migración del prototipo sigue una estrategia
 *strangler fig* (SPEC.md §7.5): se extrae un servicio cada vez, sin reescritura

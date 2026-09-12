@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   verificar:
-    name: Typecheck y tests
+    name: Typecheck, lint, build y tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -33,7 +33,22 @@ jobs:
             fi
           done
 
+      - name: Typecheck bff-web
+        working-directory: apps/bff-web
+        run: bunx tsc --noEmit
+
+      - name: Lint bff-web
+        working-directory: apps/bff-web
+        run: bunx eslint .
+
+      - name: Build bff-web
+        working-directory: apps/bff-web
+        env:
+          VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
+          VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+        run: bun run build
+
       # El motor de plazos tiene consecuencia legal directa: si sus tests fallan,
-      # no se despliega nada (SPEC.md 7.4).
+      # no se despliega nada (SPEC.md §7.4).
       - name: Tests
         run: bun test

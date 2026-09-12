@@ -75,3 +75,26 @@ en la especificación como comportamiento deseado:
   `notifications-service`; la primera no existe en el mapa de servicios.
 - **§3 requisitos:** el alta en autoservicio y el login por usuario son
   requisitos nuevos, sin RF asignado.
+
+---
+
+## Etapa 1 del refactor completada — 12 de septiembre de 2026
+
+`apps/bff-web/` nace como copia de `multas-export/` y desde este commit es
+donde vive el desarrollo real (ver `docs/refactor/PLAN-REFACTOR-FRONTEND.md`).
+`multas-export/` queda congelado como espejo de solo lectura de lo que Lovable
+genera: **a partir de aquí, cada sincronización de Lovable se porta a mano a
+`apps/bff-web`, no se copia**.
+
+Lo hecho en Etapa 1 (cimientos):
+- `vite.config.ts` explícito, sin `@lovable.dev/vite-tanstack-config`.
+- Retirada la telemetría de Lovable (`lovable-error-reporting.ts`,
+  `previewAuthStorage.ts`, `cron-auth.ts` sin uso); sustituida por
+  `lib/error-reporting.ts` propio.
+- `.env` fuera de git, `.env.example` con todas las variables documentadas.
+- Podados 37 de 46 componentes `shadcn/ui` sin uso y sus dependencias npm
+  (21 paquetes `@radix-ui/*`, `recharts`, `cmdk`, `date-fns`, `vaul`,
+  `embla-carousel-react`, `input-otp`, `react-day-picker`,
+  `react-resizable-panels`).
+- CI en `.github/workflows/ci.yml`: typecheck, lint, build y `bun test`.
+- `bunx tsc --noEmit`, `eslint .` y `bun run build` en verde.

@@ -1,7 +1,11 @@
-# SANCIONA FLEET — Especificación funcional (v0.2)
+# SANCIONA FLEET — Especificación funcional (v0.3)
 
-> **Estado:** completa para desarrollo, con **10 decisiones de producto (§4) y
-> 1 decisión de alcance de migración (§7.5) aún pendientes de confirmar** por
+> **v0.3 (12 sep 2026):** incorpora §3.10 — alta en autoservicio, planes, correo
+> transaccional y login por usuario, capacidades construidas en Lovable sin pasar
+> por esta spec. Sube a 12 las decisiones pendientes.
+>
+> **Estado:** completa para desarrollo, con **12 decisiones de producto (§4 y §3.10)
+> y 1 decisión de alcance de migración (§7.5) aún pendientes de confirmar** por
 > Cristian y Jorge (socios). No bloquean empezar a construir: cada una lleva su
 > recomendación por defecto.
 > **Arquitectura:** microservicios (§7) — decisión ya confirmada, no pendiente.
@@ -203,6 +207,51 @@ funciona así y se mantiene.
   `id`, no cargar la lista completa y buscar en cliente (§8.4 #31).
 
 ---
+
+### 3.10 Alta en autoservicio, planes y correo
+
+> **Añadido en v0.3.** Estas capacidades se construyeron directamente en Lovable
+> entre el 9 y el 12 de septiembre, **sin pasar por esta especificación**. Se
+> recogen aquí para cerrar esa brecha. Ver `docs/legacy/CAMBIOS-LOVABLE.md` y
+> el caso de uso CU-07.
+
+- **RF-ALTA-EMPRESA-1** [EXISTENTE] Una empresa puede darse de alta sola, en un
+  flujo de tres pasos: datos de contacto y empresa → elección de plan →
+  credenciales. Sustituye a la landing comercial, que se eliminó.
+- **RF-ALTA-EMPRESA-2** [NUEVO — ⚠️ seguridad] El endpoint de alta es público y
+  crea usuarios y organizaciones con la clave `service_role`. Debe protegerse
+  con **límite de peticiones y captcha** antes de exponerlo a internet.
+- **RF-ALTA-EMPRESA-3** [NUEVO — ⚠️ seguridad] La cuenta no debe marcarse como
+  verificada (`email_confirm: true`) sin que se haya probado el correo. El alta
+  queda pendiente hasta que se abre el enlace de confirmación.
+- **RF-ALTA-EMPRESA-4** [NUEVO — ⚠️ seguridad] La contraseña **no debe viajar al
+  navegador ni mostrarse en pantalla**. El correo debe llevar un enlace de un
+  solo uso para que la persona establezca la suya, en lugar de una contraseña
+  generada en claro.
+- **RF-ALTA-EMPRESA-5** [NUEVO — bloqueante comercial] Elegir plan no es
+  contratarlo: hoy `organizations.plan` se guarda **sin ningún cobro**.
+  Mientras no haya pasarela de pago, cualquiera puede darse de alta con el plan
+  más caro gratis.
+- **RF-LOGIN-1** [EXISTENTE] Se puede iniciar sesión con nombre de usuario o con
+  correo. `profiles.username` es único (índice sobre `lower(username)`).
+- **RF-EMAIL-1** [NUEVO] El correo transaccional se envía con **Resend**
+  (`RESEND_API_KEY`), pendiente de configurar el dominio. Requiere evaluación
+  RGPD como nuevo encargado de tratamiento (Bloque 4 de `TAREAS-CRISTIAN.md`).
+- **RF-EMAIL-2** [NUEVO] La plantilla enlaza a `/auth`, que ahora redirige a
+  `/`. Debe apuntar a la ruta vigente, y `PUBLIC_SITE_URL` no debe llevar el
+  dominio de Lovable como valor por defecto.
+
+🟡 **DECISIÓN PENDIENTE — precios.** Los importes vigentes en el código (Básico
+49 €, Profesional 99 €, Empresa 199 €/mes) y los límites por plan **los propuso
+el modelo de Lovable, no una decisión comercial**. En §9 el modelo de negocio
+seguía marcado como pendiente: ahora está resuelto de hecho. **Recomendación:**
+confirmarlos o cambiarlos conscientemente antes de que los vea un cliente.
+
+🟡 **DECISIÓN PENDIENTE — dónde vive la facturación.** El mapa de servicios de
+§7.1 no contempla ninguno responsable de planes, cobros ni suscripciones.
+**Recomendación:** un `billing-service` propio, dueño de `organizations.plan` y
+de la relación con la pasarela de pago. El correo transaccional, en cambio,
+encaja en `notifications-service` sin necesidad de servicio nuevo.
 
 ## 4. Modelo de dominio objetivo
 

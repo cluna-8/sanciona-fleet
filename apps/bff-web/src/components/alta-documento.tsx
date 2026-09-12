@@ -14,8 +14,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
 import { procesarDocumento, crearExpedienteDesdeExtraccion } from "@/lib/expediente.functions";
+import { subirDocumentoEntrada, rutaEntrada, crearRegistroExtraccion } from "@/features/extraccion";
 import { useVehiculos, useConductores } from "@/features/flota";
 import { useSesion } from "@/hooks/use-org";
 import { ETIQUETAS_CAMPO, ORDEN_CAMPOS, esCampoCritico } from "@/lib/analisis";
@@ -188,37 +188,21 @@ export function AltaDesdeDocumento({
       setPaso(1);
       setEstado("Documento recibido");
 
-      const ruta = `${orgId}/entrada/${Date.now()}-${archivo.name.replace(/[^\w.-]/g, "_")}`;
-      const { error: errorSubida } = await supabase.storage
-        .from("sanction-documents")
-        .upload(ruta, archivo, archivo.type ? { contentType: archivo.type } : {});
-      if (errorSubida) throw errorSubida;
+      const ruta = rutaEntrada(orgId, archivo.name);
+      await subirDocumentoEntrada(ruta, archivo);
 
-      const { data: extraccion, error } = await supabase
-        .from("sanction_extractions")
-        .insert({
-          organization_id: orgId,
-          file_name: archivo.name,
-          file_path: ruta,
-          mime_type: archivo.type || "application/pdf",
-          status: "Documento recibido",
-          created_by: userId,
-        } as never)
-        .select("id")
-        .single();
-      if (error || !extraccion) {
-        if (error?.message?.toLowerCase().includes("row-level security")) {
-          throw new Error(
-            "No tienes permisos sobre esta empresa para registrar documentos. Comprueba que tu usuario sigue activo en la empresa.",
-          );
-        }
-        throw error ?? new Error("No se ha podido registrar el documento");
-      }
+      const extraccionId = await crearRegistroExtraccion({
+        organization_id: orgId,
+        file_name: archivo.name,
+        file_path: ruta,
+        mime_type: archivo.type || "application/pdf",
+        created_by: userId,
+      });
 
-      setExtractionId(extraccion.id);
+      setExtractionId(extraccionId);
       setEstado("Procesando documento");
       try {
-        const resultado = await fnProcesar({ data: { extractionId: extraccion.id } });
+        const resultado = await fnProcesar({ data: { extractionId: extraccionId } });
         return { ok: true as const, resultado };
       } catch (e) {
         console.error("[alta-documento] procesamiento no disponible", e);

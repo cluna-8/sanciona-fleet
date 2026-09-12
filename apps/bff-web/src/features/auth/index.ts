@@ -5,4 +5,6 @@ export {
   obtenerSesionActual,
   actualizarContrasena,
   cerrarSesion,
+  iniciarSesionConPassword,
+  solicitarRestablecerContrasena,
 } from "./api/client";

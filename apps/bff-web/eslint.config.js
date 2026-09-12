@@ -36,5 +36,32 @@ export default tseslint.config(
       "@typescript-eslint/no-unused-vars": "off",
     },
   },
+  {
+    // Etapa 2 del plan de refactor (docs/refactor/PLAN-REFACTOR-FRONTEND.md §2.6):
+    // ninguna ruta ni componente habla con Supabase directamente. Solo
+    // features/*/api/* y los módulos *.server.ts / *.functions.ts lo hacen.
+    files: ["src/routes/**/*.{ts,tsx}", "src/components/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "server-only",
+              message:
+                "TanStack Start does not use the Next.js `server-only` package. Rename the module to `*.server.ts` or mark it with `@tanstack/react-start/server-only`.",
+            },
+          ],
+          patterns: [
+            {
+              group: ["@/integrations/supabase/*", "@supabase/supabase-js"],
+              message:
+                "Las rutas y componentes no hablan con Supabase directamente (Etapa 2 del refactor). Añade o usa un hook en features/*/api/ en su lugar.",
+            },
+          ],
+        },
+      ],
+    },
+  },
   eslintPluginPrettier,
 );

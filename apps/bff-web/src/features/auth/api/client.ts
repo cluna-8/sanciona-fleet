@@ -37,3 +37,19 @@ export async function actualizarContrasena(password: string): Promise<{ error: s
 export async function cerrarSesion(): Promise<void> {
   await supabase.auth.signOut();
 }
+
+export async function iniciarSesionConPassword(
+  email: string,
+  password: string,
+): Promise<{ error: string | null }> {
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  return { error: error?.message ?? null };
+}
+
+export async function solicitarRestablecerContrasena(
+  email: string,
+  redirectTo: string,
+): Promise<{ error: string | null }> {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+  return { error: error?.message ?? null };
+}

@@ -4,7 +4,12 @@ import { useServerFn } from "@tanstack/react-start";
 import { ShieldCheck, Check, Loader2, ArrowRight, ArrowLeft, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  obtenerSesionActual,
+  suscribirCambiosAuth,
+  iniciarSesionConPassword,
+  solicitarRestablecerContrasena,
+} from "@/features/auth";
 import { crearAlta } from "@/lib/alta.functions";
 import { PLANES } from "@/lib/planes";
 import { resolverIdentificador } from "@/lib/login.functions";
@@ -96,13 +101,12 @@ function PaginaInicio() {
       return;
     }
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/dashboard", replace: true });
+    obtenerSesionActual().then((session) => {
+      if (session) navigate({ to: "/dashboard", replace: true });
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+    return suscribirCambiosAuth((_e, session) => {
       if (session && !registrando.current) navigate({ to: "/dashboard", replace: true });
     });
-    return () => sub.subscription.unsubscribe();
   }, [navigate]);
 
   async function entrar(e: React.FormEvent<HTMLFormElement>) {
@@ -129,17 +133,12 @@ function PaginaInicio() {
       });
       return;
     }
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password: parsed.data.password,
-    });
+    const { error } = await iniciarSesionConPassword(email, parsed.data.password);
     setCargando(false);
     if (error) {
       toast.error("No se ha podido iniciar sesión", {
         description:
-          error.message === "Invalid login credentials"
-            ? "Usuario o contraseña incorrectos."
-            : error.message,
+          error === "Invalid login credentials" ? "Usuario o contraseña incorrectos." : error,
       });
       return;
     }
@@ -160,12 +159,13 @@ function PaginaInicio() {
     }
     setErrores({});
     setCargando(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
+    const { error } = await solicitarRestablecerContrasena(
+      parsed.data,
+      `${window.location.origin}/reset-password`,
+    );
     setCargando(false);
     if (error) {
-      toast.error("No se ha podido enviar el correo", { description: error.message });
+      toast.error("No se ha podido enviar el correo", { description: error });
       return;
     }
     toast.success("Correo enviado", {

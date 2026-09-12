@@ -11,7 +11,7 @@ import {
 import { AppShell } from "@/components/app-shell";
 import { EtiquetaEstado, EtiquetaPrioridad, EtiquetaPlazo } from "@/components/etiquetas";
 import { useSesion } from "@/hooks/use-org";
-import { useSanciones, type Sancion } from "@/hooks/use-datos";
+import { useSanciones, type Sancion } from "@/features/expedientes";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ESTADOS_ABIERTOS, formatoImporte, diasRestantes } from "@/lib/fleet";

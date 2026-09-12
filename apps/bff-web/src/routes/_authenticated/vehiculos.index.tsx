@@ -1,13 +1,18 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Truck, Loader2, Pencil } from "lucide-react";
 import { toast } from "sonner";
-import { z } from "zod";
 import { AppShell } from "@/components/app-shell";
 import { useSesion, puedeGestionar } from "@/hooks/use-org";
-import { useVehiculos, useSanciones, type Vehiculo } from "@/hooks/use-datos";
-import { supabase } from "@/integrations/supabase/client";
+import { useSanciones } from "@/features/expedientes";
+import {
+  useVehiculos,
+  useCrearVehiculo,
+  useActualizarVehiculo,
+  ESTADOS_FLOTA,
+  type Vehiculo,
+} from "@/features/flota";
+import { ValidationError } from "@/shared/lib/errores";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,58 +38,30 @@ export const Route = createFileRoute("/_authenticated/vehiculos/")({
   component: Vehiculos,
 });
 
-const esquema = z.object({
-  registration_number: z.string().trim().min(4, "Matrícula no válida").max(15),
-  internal_code: z.string().trim().max(30).optional(),
-  brand: z.string().trim().max(50).optional(),
-  model: z.string().trim().max(50).optional(),
-});
-
 function Vehiculos() {
   const { data: sesion } = useSesion();
   const orgId = sesion?.organization?.id;
   const { data: vehiculos, isLoading } = useVehiculos(orgId);
   const { data: sanciones } = useSanciones(orgId);
-  const queryClient = useQueryClient();
   const gestor = puedeGestionar(sesion?.role);
   const [abierto, setAbierto] = useState(false);
   const [tipo, setTipo] = useState(TIPOS_VEHICULO[0]!);
   const [errores, setErrores] = useState<Record<string, string>>({});
 
-  const crear = useMutation({
-    mutationFn: async (form: FormData) => {
-      if (!orgId) throw new Error("Sesión no válida");
-      const parsed = esquema.safeParse({
-        registration_number: String(form.get("registration_number") ?? ""),
-        internal_code: String(form.get("internal_code") ?? ""),
-        brand: String(form.get("brand") ?? ""),
-        model: String(form.get("model") ?? ""),
-      });
-      if (!parsed.success) {
-        const errs: Record<string, string> = {};
-        for (const i of parsed.error.issues) errs[String(i.path[0])] = i.message;
-        setErrores(errs);
-        throw new Error("Revisa los campos marcados");
-      }
-      setErrores({});
-      const d = parsed.data;
-      const { error } = await supabase.from("vehicles").insert({
-        organization_id: orgId,
-        registration_number: d.registration_number.toUpperCase(),
-        internal_code: d.internal_code || null,
-        brand: d.brand || null,
-        model: d.model || null,
-        vehicle_type: tipo,
-      } as never);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["vehiculos"] });
-      setAbierto(false);
-      toast.success("Vehículo añadido");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const crear = useCrearVehiculo(orgId, tipo);
+  const enviarCrear = (form: FormData) => {
+    setErrores({});
+    crear.mutate(form, {
+      onSuccess: () => {
+        setAbierto(false);
+        toast.success("Vehículo añadido");
+      },
+      onError: (e: Error) => {
+        if (e instanceof ValidationError) setErrores(e.fieldErrors);
+        toast.error(e.message);
+      },
+    });
+  };
 
   return (
     <AppShell
@@ -106,7 +83,7 @@ function Vehiculos() {
                 className="space-y-4"
                 onSubmit={(e) => {
                   e.preventDefault();
-                  crear.mutate(new FormData(e.currentTarget));
+                  enviarCrear(new FormData(e.currentTarget));
                 }}
               >
                 <div className="space-y-1.5">
@@ -234,44 +211,14 @@ function Vehiculos() {
   );
 }
 
-const ESTADOS_FLOTA = ["activo", "inactivo"];
-
 function EditarVehiculo({ vehiculo }: { vehiculo: Vehiculo }) {
-  const queryClient = useQueryClient();
+  const { data: sesion } = useSesion();
+  const orgId = sesion?.organization?.id;
   const [abierto, setAbierto] = useState(false);
   const [tipo, setTipo] = useState(vehiculo.vehicle_type ?? TIPOS_VEHICULO[0]!);
   const [estado, setEstado] = useState(vehiculo.status);
 
-  const guardar = useMutation({
-    mutationFn: async (form: FormData) => {
-      const parsed = esquema.safeParse({
-        registration_number: String(form.get("registration_number") ?? ""),
-        internal_code: String(form.get("internal_code") ?? ""),
-        brand: String(form.get("brand") ?? ""),
-        model: String(form.get("model") ?? ""),
-      });
-      if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Datos no válidos");
-      const d = parsed.data;
-      const { error } = await supabase
-        .from("vehicles")
-        .update({
-          registration_number: d.registration_number.toUpperCase(),
-          internal_code: d.internal_code || null,
-          brand: d.brand || null,
-          model: d.model || null,
-          vehicle_type: tipo,
-          status: estado,
-        } as never)
-        .eq("id", vehiculo.id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["vehiculos"] });
-      setAbierto(false);
-      toast.success("Vehículo actualizado");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const guardar = useActualizarVehiculo(orgId, vehiculo.id, tipo, estado);
 
   return (
     <Dialog open={abierto} onOpenChange={setAbierto}>
@@ -288,7 +235,13 @@ function EditarVehiculo({ vehiculo }: { vehiculo: Vehiculo }) {
           className="space-y-4"
           onSubmit={(e) => {
             e.preventDefault();
-            guardar.mutate(new FormData(e.currentTarget));
+            guardar.mutate(new FormData(e.currentTarget), {
+              onSuccess: () => {
+                setAbierto(false);
+                toast.success("Vehículo actualizado");
+              },
+              onError: (e: Error) => toast.error(e.message),
+            });
           }}
         >
           <div className="space-y-1.5">

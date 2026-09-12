@@ -1,13 +1,18 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Loader2, Pencil } from "lucide-react";
 import { toast } from "sonner";
-import { z } from "zod";
 import { AppShell } from "@/components/app-shell";
 import { useSesion, puedeGestionar } from "@/hooks/use-org";
-import { useConductores, useSanciones, type Conductor } from "@/hooks/use-datos";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  useConductores,
+  useCrearConductor,
+  useActualizarConductor,
+  ESTADOS_FLOTA,
+  type Conductor,
+} from "@/features/flota";
+import { useSanciones } from "@/features/expedientes";
+import { ValidationError } from "@/shared/lib/errores";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,56 +38,29 @@ export const Route = createFileRoute("/_authenticated/conductores/")({
   component: Conductores,
 });
 
-const esquema = z.object({
-  full_name: z.string().trim().min(3, "Indica el nombre completo").max(120),
-  identification_number: z.string().trim().max(20).optional(),
-  email: z.union([z.string().trim().email("Correo no válido").max(255), z.literal("")]),
-  phone: z.string().trim().max(20).optional(),
-});
-
 function Conductores() {
   const { data: sesion } = useSesion();
   const orgId = sesion?.organization?.id;
   const { data: conductores, isLoading } = useConductores(orgId);
   const { data: sanciones } = useSanciones(orgId);
-  const queryClient = useQueryClient();
   const gestor = puedeGestionar(sesion?.role);
   const [abierto, setAbierto] = useState(false);
   const [errores, setErrores] = useState<Record<string, string>>({});
 
-  const crear = useMutation({
-    mutationFn: async (form: FormData) => {
-      if (!orgId) throw new Error("Sesión no válida");
-      const parsed = esquema.safeParse({
-        full_name: String(form.get("full_name") ?? ""),
-        identification_number: String(form.get("identification_number") ?? ""),
-        email: String(form.get("email") ?? ""),
-        phone: String(form.get("phone") ?? ""),
-      });
-      if (!parsed.success) {
-        const errs: Record<string, string> = {};
-        for (const i of parsed.error.issues) errs[String(i.path[0])] = i.message;
-        setErrores(errs);
-        throw new Error("Revisa los campos marcados");
-      }
-      setErrores({});
-      const d = parsed.data;
-      const { error } = await supabase.from("drivers").insert({
-        organization_id: orgId,
-        full_name: d.full_name,
-        identification_number: d.identification_number || null,
-        email: d.email || null,
-        phone: d.phone || null,
-      } as never);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["conductores"] });
-      setAbierto(false);
-      toast.success("Conductor añadido");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const crear = useCrearConductor(orgId);
+  const enviarCrear = (form: FormData) => {
+    setErrores({});
+    crear.mutate(form, {
+      onSuccess: () => {
+        setAbierto(false);
+        toast.success("Conductor añadido");
+      },
+      onError: (e: Error) => {
+        if (e instanceof ValidationError) setErrores(e.fieldErrors);
+        toast.error(e.message);
+      },
+    });
+  };
 
   return (
     <AppShell
@@ -104,7 +82,7 @@ function Conductores() {
                 className="space-y-4"
                 onSubmit={(e) => {
                   e.preventDefault();
-                  crear.mutate(new FormData(e.currentTarget));
+                  enviarCrear(new FormData(e.currentTarget));
                 }}
               >
                 <div className="space-y-1.5">
@@ -203,42 +181,13 @@ function Conductores() {
   );
 }
 
-const ESTADOS_CONDUCTOR = ["activo", "inactivo"];
-
 function EditarConductor({ conductor }: { conductor: Conductor }) {
-  const queryClient = useQueryClient();
+  const { data: sesion } = useSesion();
+  const orgId = sesion?.organization?.id;
   const [abierto, setAbierto] = useState(false);
   const [estado, setEstado] = useState(conductor.status);
 
-  const guardar = useMutation({
-    mutationFn: async (form: FormData) => {
-      const parsed = esquema.safeParse({
-        full_name: String(form.get("full_name") ?? ""),
-        identification_number: String(form.get("identification_number") ?? ""),
-        email: String(form.get("email") ?? ""),
-        phone: String(form.get("phone") ?? ""),
-      });
-      if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Datos no válidos");
-      const d = parsed.data;
-      const { error } = await supabase
-        .from("drivers")
-        .update({
-          full_name: d.full_name,
-          identification_number: d.identification_number || null,
-          email: d.email || null,
-          phone: d.phone || null,
-          status: estado,
-        } as never)
-        .eq("id", conductor.id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["conductores"] });
-      setAbierto(false);
-      toast.success("Conductor actualizado");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const guardar = useActualizarConductor(orgId, conductor.id, estado);
 
   return (
     <Dialog open={abierto} onOpenChange={setAbierto}>
@@ -255,7 +204,13 @@ function EditarConductor({ conductor }: { conductor: Conductor }) {
           className="space-y-4"
           onSubmit={(e) => {
             e.preventDefault();
-            guardar.mutate(new FormData(e.currentTarget));
+            guardar.mutate(new FormData(e.currentTarget), {
+              onSuccess: () => {
+                setAbierto(false);
+                toast.success("Conductor actualizado");
+              },
+              onError: (e: Error) => toast.error(e.message),
+            });
           }}
         >
           <div className="space-y-1.5">
@@ -287,7 +242,7 @@ function EditarConductor({ conductor }: { conductor: Conductor }) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {ESTADOS_CONDUCTOR.map((e) => (
+                {ESTADOS_FLOTA.map((e) => (
                   <SelectItem key={e} value={e}>
                     {e}
                   </SelectItem>

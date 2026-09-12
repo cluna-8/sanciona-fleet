@@ -1,14 +1,13 @@
 import { useState } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { z } from "zod";
 import { AppShell } from "@/components/app-shell";
 import { AltaDesdeDocumento } from "@/components/alta-documento";
 import { useSesion } from "@/hooks/use-org";
-import { useVehiculos, useConductores } from "@/hooks/use-datos";
-import { supabase } from "@/integrations/supabase/client";
+import { useVehiculos, useConductores } from "@/features/flota";
+import { useCrearSancionManual, type DatosSancionManual } from "@/features/expedientes";
+import { ValidationError } from "@/shared/lib/errores";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,30 +27,12 @@ export const Route = createFileRoute("/_authenticated/sanciones/nueva")({
 
 const SIN_ASIGNAR = "__ninguno__";
 
-const esquema = z.object({
-  reference_number: z.string().trim().min(3, "Indica el número de expediente").max(80),
-  sanctioning_authority: z.string().trim().min(1, "Selecciona el organismo").max(120),
-  sanction_category: z.string().trim().min(1, "Selecciona la categoría").max(120),
-  description: z.string().trim().max(1000).optional(),
-  violation_date: z.string().max(10).optional(),
-  notification_date: z.string().max(10).optional(),
-  payment_deadline: z.string().max(10).optional(),
-  appeal_deadline: z.string().max(10).optional(),
-  original_amount: z.coerce.number().min(0, "Importe no válido").max(1_000_000),
-  discounted_amount: z.coerce.number().min(0).max(1_000_000).optional(),
-  points: z.coerce.number().min(0).max(20).optional(),
-  status: z.string(),
-  priority: z.string(),
-  notes: z.string().trim().max(1000).optional(),
-});
-
 function NuevaSancion() {
   const { data: sesion } = useSesion();
   const orgId = sesion?.organization?.id;
   const { data: vehiculos } = useVehiculos(orgId);
   const { data: conductores } = useConductores(orgId);
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
   const [vehiculo, setVehiculo] = useState(SIN_ASIGNAR);
   const [conductor, setConductor] = useState(SIN_ASIGNAR);
@@ -63,10 +44,18 @@ function NuevaSancion() {
   const [archivo, setArchivo] = useState<File | null>(null);
   const [errores, setErrores] = useState<Record<string, string>>({});
 
-  const crear = useMutation({
-    mutationFn: async (form: FormData) => {
-      if (!orgId || !sesion) throw new Error("Sesión no válida");
-      const bruto = {
+  const crearMut = useCrearSancionManual(orgId, sesion?.userId, {
+    vehicleId: vehiculo === SIN_ASIGNAR ? null : vehiculo,
+    driverId: conductor === SIN_ASIGNAR ? null : conductor,
+    status: estado,
+    priority: prioridad,
+    archivo,
+    tipoDocumento: tipoDoc,
+  });
+  const crear = {
+    isPending: crearMut.isPending,
+    mutate: (form: FormData) => {
+      const datos: DatosSancionManual = {
         reference_number: String(form.get("reference_number") ?? ""),
         sanctioning_authority: organismo,
         sanction_category: categoria,
@@ -76,81 +65,23 @@ function NuevaSancion() {
         payment_deadline: String(form.get("payment_deadline") ?? ""),
         appeal_deadline: String(form.get("appeal_deadline") ?? ""),
         original_amount: String(form.get("original_amount") ?? "0"),
-        discounted_amount: String(form.get("discounted_amount") ?? "") || undefined,
-        points: String(form.get("points") ?? "") || undefined,
-        status: estado,
-        priority: prioridad,
+        discounted_amount: String(form.get("discounted_amount") ?? ""),
+        points: String(form.get("points") ?? ""),
         notes: String(form.get("notes") ?? ""),
       };
-      const parsed = esquema.safeParse(bruto);
-      if (!parsed.success) {
-        const errs: Record<string, string> = {};
-        for (const issue of parsed.error.issues) errs[String(issue.path[0])] = issue.message;
-        setErrores(errs);
-        throw new Error("Revisa los campos marcados");
-      }
       setErrores({});
-      const d = parsed.data;
-
-      const { data: sancion, error } = await supabase
-        .from("sanctions")
-        .insert({
-          organization_id: orgId,
-          reference_number: d.reference_number,
-          sanctioning_authority: d.sanctioning_authority,
-          sanction_category: d.sanction_category,
-          description: d.description || null,
-          violation_date: d.violation_date || null,
-          notification_date: d.notification_date || null,
-          payment_deadline: d.payment_deadline || null,
-          appeal_deadline: d.appeal_deadline || null,
-          original_amount: d.original_amount,
-          discounted_amount: d.discounted_amount ?? null,
-          points: d.points ?? null,
-          vehicle_id: vehiculo === SIN_ASIGNAR ? null : vehiculo,
-          driver_id: conductor === SIN_ASIGNAR ? null : conductor,
-          status: d.status,
-          priority: d.priority,
-          notes: d.notes || null,
-          created_by: sesion.userId,
-        } as never)
-        .select("id")
-        .single();
-      if (error) throw error;
-
-      if (archivo) {
-        const ruta = `${orgId}/${sancion.id}/${Date.now()}-${archivo.name.replace(/[^\w.-]/g, "_")}`;
-        const { error: subida } = await supabase.storage
-          .from("sanction-documents")
-          .upload(ruta, archivo);
-        if (subida) throw subida;
-        await supabase.from("sanction_documents").insert({
-          organization_id: orgId,
-          sanction_id: sancion.id,
-          document_type: tipoDoc,
-          file_name: archivo.name,
-          file_path: ruta,
-          uploaded_by: sesion.userId,
-        } as never);
-      }
-
-      await supabase.from("sanction_actions").insert({
-        organization_id: orgId,
-        sanction_id: sancion.id,
-        action_type: "Registro del expediente",
-        description: `Expediente ${d.reference_number} registrado en el sistema.`,
-        performed_by: sesion.userId,
-      } as never);
-
-      return sancion.id as string;
+      crearMut.mutate(datos, {
+        onSuccess: (id) => {
+          toast.success("Sanción registrada correctamente");
+          navigate({ to: "/sanciones/$id", params: { id } });
+        },
+        onError: (e: Error) => {
+          if (e instanceof ValidationError) setErrores(e.fieldErrors);
+          toast.error(e.message);
+        },
+      });
     },
-    onSuccess: (id) => {
-      queryClient.invalidateQueries({ queryKey: ["sanciones"] });
-      toast.success("Sanción registrada correctamente");
-      navigate({ to: "/sanciones/$id", params: { id } });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  };
 
   return (
     <AppShell titulo="Nueva sanción" descripcion="Registra un expediente sancionador">

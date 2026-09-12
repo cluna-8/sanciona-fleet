@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Download } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { useSesion } from "@/hooks/use-org";
-import { useSanciones, type Sancion } from "@/hooks/use-datos";
+import { useSanciones, type Sancion } from "@/features/expedientes";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ESTADOS_ABIERTOS, formatoImporte } from "@/lib/fleet";

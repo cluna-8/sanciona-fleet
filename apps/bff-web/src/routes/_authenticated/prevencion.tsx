@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ShieldAlert } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { useSesion } from "@/hooks/use-org";
-import { useSanciones } from "@/hooks/use-datos";
+import { useSanciones } from "@/features/expedientes";
 import { formatoImporte } from "@/lib/fleet";
 import { Skeleton } from "@/components/ui/skeleton";
 

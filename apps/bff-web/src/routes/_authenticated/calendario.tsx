@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, CalendarClock } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { EtiquetaEstado } from "@/components/etiquetas";
 import { useSesion } from "@/hooks/use-org";
-import { useSanciones, type Sancion } from "@/hooks/use-datos";
+import { useSanciones, type Sancion } from "@/features/expedientes";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatoImporte, formatoFecha, nivelPlazo, CLASES_ALERTA } from "@/lib/fleet";

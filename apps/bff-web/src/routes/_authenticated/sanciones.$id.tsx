@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   FileText,
@@ -15,7 +14,6 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { EtiquetaEstado, EtiquetaPrioridad, EtiquetaPlazo } from "@/components/etiquetas";
 import { useSesion, puedeGestionar } from "@/hooks/use-org";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -27,7 +25,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Sancion } from "@/hooks/use-datos";
+import {
+  useSancion,
+  useActuaciones,
+  useComentarios,
+  useCambiarEstado,
+  useAñadirComentario,
+} from "@/features/expedientes";
+import { useDocumentosSancion, enlaceDescarga, type DocumentoSancion } from "@/features/documentos";
 import { PanelAnalisis } from "@/components/panel-analisis";
 import { useExtraccion } from "@/hooks/use-expediente";
 import { ETIQUETAS_CAMPO, valorTexto } from "@/lib/analisis";
@@ -37,138 +42,48 @@ export const Route = createFileRoute("/_authenticated/sanciones/$id")({
   component: FichaSancion,
 });
 
-type Documento = {
-  id: string;
-  document_type: string;
-  file_name: string;
-  file_path: string;
-  created_at: string;
-};
-type Actuacion = {
-  id: string;
-  action_type: string;
-  description: string | null;
-  created_at: string;
-};
-type Comentario = { id: string; comment: string; created_at: string; created_by: string | null };
+type Documento = DocumentoSancion;
 
 function FichaSancion() {
   const { id } = useParams({ from: "/_authenticated/sanciones/$id" });
   const { data: sesion } = useSesion();
   const orgId = sesion?.organization?.id;
-  const queryClient = useQueryClient();
   const gestor = puedeGestionar(sesion?.role);
   const [comentario, setComentario] = useState("");
 
-  const { data: sancion, isLoading } = useQuery({
-    queryKey: ["sancion", id],
-    enabled: !!orgId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("sanctions")
-        .select("*, vehicles(registration_number), drivers(full_name)")
-        .eq("id", id)
-        .maybeSingle();
-      if (error) throw error;
-      return data as unknown as Sancion | null;
-    },
-  });
+  const { data: sancion, isLoading } = useSancion(id);
+  const { data: documentos } = useDocumentosSancion(id);
+  const { data: actuaciones } = useActuaciones(id);
+  const { data: comentarios } = useComentarios(id);
 
-  const { data: documentos } = useQuery({
-    queryKey: ["sancion-docs", id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("sanction_documents")
-        .select("id, document_type, file_name, file_path, created_at")
-        .eq("sanction_id", id)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as Documento[];
-    },
-  });
+  const cambiarEstado = useCambiarEstado(orgId, sesion?.userId, id);
+  const enviarCambioEstado = (nuevo: string) => {
+    cambiarEstado.mutate(nuevo, {
+      onSuccess: () => toast.success("Estado actualizado"),
+      onError: (e: Error) => toast.error(e.message),
+    });
+  };
 
-  const { data: actuaciones } = useQuery({
-    queryKey: ["sancion-actions", id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("sanction_actions")
-        .select("id, action_type, description, created_at")
-        .eq("sanction_id", id)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as Actuacion[];
-    },
-  });
-
-  const { data: comentarios } = useQuery({
-    queryKey: ["sancion-comments", id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("sanction_comments")
-        .select("id, comment, created_at, created_by")
-        .eq("sanction_id", id)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as unknown as Comentario[];
-    },
-  });
-
-  const cambiarEstado = useMutation({
-    mutationFn: async (nuevo: string) => {
-      if (!orgId || !sesion) throw new Error("Sesión no válida");
-      const { error } = await supabase
-        .from("sanctions")
-        .update({ status: nuevo } as never)
-        .eq("id", id);
-      if (error) throw error;
-      await supabase.from("sanction_actions").insert({
-        organization_id: orgId,
-        sanction_id: id,
-        action_type: "Cambio de estado",
-        description: `Estado actualizado a «${nuevo}».`,
-        performed_by: sesion.userId,
-      } as never);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sancion", id] });
-      queryClient.invalidateQueries({ queryKey: ["sancion-actions", id] });
-      queryClient.invalidateQueries({ queryKey: ["sanciones"] });
-      toast.success("Estado actualizado");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const añadirComentario = useMutation({
-    mutationFn: async () => {
-      const texto = comentario.trim();
-      if (!texto) throw new Error("El comentario no puede estar vacío");
-      if (texto.length > 1000) throw new Error("Máximo 1000 caracteres");
-      if (!orgId || !sesion) throw new Error("Sesión no válida");
-      const { error } = await supabase.from("sanction_comments").insert({
-        organization_id: orgId,
-        sanction_id: id,
-        comment: texto,
-        created_by: sesion.userId,
-      } as never);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      setComentario("");
-      queryClient.invalidateQueries({ queryKey: ["sancion-comments", id] });
-      toast.success("Comentario añadido");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const añadirComentarioMut = useAñadirComentario(orgId, sesion?.userId, id);
+  const añadirComentario = {
+    isPending: añadirComentarioMut.isPending,
+    mutate: () =>
+      añadirComentarioMut.mutate(comentario, {
+        onSuccess: () => {
+          setComentario("");
+          toast.success("Comentario añadido");
+        },
+        onError: (e: Error) => toast.error(e.message),
+      }),
+  };
 
   async function descargar(doc: Documento) {
-    const { data, error } = await supabase.storage
-      .from("sanction-documents")
-      .createSignedUrl(doc.file_path, 60);
-    if (error || !data) {
+    const url = await enlaceDescarga(doc.file_path);
+    if (!url) {
       toast.error("No se pudo generar el enlace de descarga");
       return;
     }
-    window.open(data.signedUrl, "_blank", "noopener");
+    window.open(url, "_blank", "noopener");
   }
 
   if (isLoading) {
@@ -199,7 +114,7 @@ function FichaSancion() {
       acciones={
         gestor ? (
           <div className="w-56">
-            <Select value={sancion.status} onValueChange={(v) => cambiarEstado.mutate(v)}>
+            <Select value={sancion.status} onValueChange={enviarCambioEstado}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>

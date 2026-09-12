@@ -1,11 +1,10 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
 import { Download, FolderClosed } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
-import { supabase } from "@/integrations/supabase/client";
 import { useSesion } from "@/hooks/use-org";
+import { useDocumentosOrganizacion, enlaceDescarga } from "@/features/documentos";
 import { formatoFecha, TIPOS_DOCUMENTO } from "@/lib/fleet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,37 +41,13 @@ export const Route = createFileRoute("/_authenticated/documentos")({
 
 const TODOS = "__todos__";
 
-type DocumentoFila = {
-  id: string;
-  document_type: string | null;
-  file_name: string;
-  file_path: string;
-  created_at: string;
-  sanction_id: string;
-  sanctions?: { reference_number: string } | null;
-};
-
 function Documentos() {
   const { data: sesion } = useSesion();
   const orgId = sesion?.organization?.id;
   const [tipo, setTipo] = useState(TODOS);
   const [busqueda, setBusqueda] = useState("");
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["documentos", orgId],
-    enabled: !!orgId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("sanction_documents")
-        .select(
-          "id, document_type, file_name, file_path, created_at, sanction_id, sanctions(reference_number)",
-        )
-        .eq("organization_id", orgId!)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as unknown as DocumentoFila[];
-    },
-  });
+  const { data, isLoading } = useDocumentosOrganizacion(orgId);
 
   const filtrados = useMemo(() => {
     const t = busqueda.trim().toLowerCase();
@@ -86,14 +61,12 @@ function Documentos() {
   }, [data, tipo, busqueda]);
 
   async function descargar(ruta: string) {
-    const { data, error } = await supabase.storage
-      .from("sanction-documents")
-      .createSignedUrl(ruta, 60);
-    if (error || !data?.signedUrl) {
+    const url = await enlaceDescarga(ruta);
+    if (!url) {
       toast.error("No se ha podido generar el enlace de descarga");
       return;
     }
-    window.open(data.signedUrl, "_blank", "noopener");
+    window.open(url, "_blank", "noopener");
   }
 
   return (

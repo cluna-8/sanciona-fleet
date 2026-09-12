@@ -14,7 +14,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useAnalisis, useBorradores, usePlazos } from "@/hooks/use-expediente";
+import { useAnalisis, useRevisarAnalisis } from "@/features/analisis";
+import { useBorradores } from "@/features/borradores";
+import { usePlazos } from "@/features/plazos";
 import { analizarExpediente, generarBorrador, recalcularPlazos } from "@/lib/expediente.functions";
 import {
   ACCION_RECOMENDADA_TEXTO,
@@ -80,33 +82,18 @@ export function PanelAnalisis({ sanctionId, puedeGestionar, esRevisor, userId }:
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const revisar = useMutation({
-    mutationFn: async (cambios: {
-      recommendation?: string;
-      review_notes?: string;
-      validar?: boolean;
-    }) => {
-      const { supabase } = await import("@/integrations/supabase/client");
-      if (!analisis) throw new Error("No hay análisis que revisar");
-      const payload: Record<string, unknown> = {};
-      if (cambios.recommendation) payload["recommendation"] = cambios.recommendation;
-      if (cambios.review_notes !== undefined) payload["review_notes"] = cambios.review_notes;
-      if (cambios.validar) {
-        payload["reviewed_by"] = userId ?? null;
-        payload["reviewed_at"] = new Date().toISOString();
-      }
-      const { error } = await supabase
-        .from("sanction_analyses")
-        .update(payload as never)
-        .eq("id", analisis.id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      invalidar();
-      toast.success("Revisión registrada");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const revisarMut = useRevisarAnalisis(sanctionId, analisis, userId);
+  const revisar = {
+    isPending: revisarMut.isPending,
+    mutate: (cambios: { recommendation?: string; review_notes?: string; validar?: boolean }) =>
+      revisarMut.mutate(cambios, {
+        onSuccess: () => {
+          invalidar();
+          toast.success("Revisión registrada");
+        },
+        onError: (e: Error) => toast.error(e.message),
+      }),
+  };
 
   const semaforo = (analisis?.traffic_light ?? "Gris") as Semaforo;
 

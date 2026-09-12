@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Download, FileText, Loader2, Printer, Save } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { useSesion, puedeGestionar } from "@/hooks/use-org";
-import { useBorrador, useVersiones } from "@/hooks/use-expediente";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  useBorrador,
+  useVersiones,
+  useGuardarVersion,
+  useCambiarEstadoBorrador,
+} from "@/features/borradores";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -40,7 +43,6 @@ export const Route = createFileRoute("/_authenticated/borradores/$id")({
 function EditorBorrador() {
   const { id } = useParams({ from: "/_authenticated/borradores/$id" });
   const { data: sesion } = useSesion();
-  const queryClient = useQueryClient();
   const gestor = puedeGestionar(sesion?.role);
   const esRevisor = sesion?.role === "revisor_juridico";
 
@@ -61,73 +63,42 @@ function EditorBorrador() {
     }
   }, [ultima, cargado]);
 
-  const guardar = useMutation({
-    mutationFn: async () => {
-      if (!borrador || !sesion) throw new Error("Sesión no válida");
-      if (texto.trim().length < 50) throw new Error("El escrito es demasiado breve");
-      const nuevaVersion = (ultima?.version ?? 0) + 1;
-      const { error } = await supabase.from("sanction_draft_versions").insert({
-        organization_id: sesion.organization?.id,
-        draft_id: borrador.id,
-        version: nuevaVersion,
-        content: texto,
-        change_note: nota || "Edición manual del escrito.",
-        created_by: sesion.userId,
-      } as never);
-      if (error) throw error;
-      const { error: e2 } = await supabase
-        .from("sanction_drafts")
-        .update({ current_version: nuevaVersion } as never)
-        .eq("id", borrador.id);
-      if (e2) throw e2;
-      await supabase.from("sanction_actions").insert({
-        organization_id: sesion.organization?.id,
-        sanction_id: borrador.sanction_id,
-        action_type: "Cambio de estado",
-        description: `Nueva versión ${nuevaVersion} del escrito «${borrador.title}».`,
-        performed_by: sesion.userId,
-      } as never);
-    },
-    onSuccess: () => {
-      setNota("");
-      queryClient.invalidateQueries({ queryKey: ["borrador-versiones", id] });
-      queryClient.invalidateQueries({ queryKey: ["borrador", id] });
-      toast.success("Versión guardada");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const guardarMut = useGuardarVersion(
+    id,
+    borrador,
+    sesion?.organization?.id,
+    sesion?.userId,
+    ultima?.version ?? 0,
+  );
+  const guardar = {
+    isPending: guardarMut.isPending,
+    mutate: () =>
+      guardarMut.mutate(
+        { texto, nota },
+        {
+          onSuccess: () => {
+            setNota("");
+            toast.success("Versión guardada");
+          },
+          onError: (e: Error) => toast.error(e.message),
+        },
+      ),
+  };
 
-  const cambiarEstado = useMutation({
-    mutationFn: async (estado: string) => {
-      if (!borrador || !sesion) throw new Error("Sesión no válida");
-      if (estado === "Validado" && !esRevisor) {
-        throw new Error("Solo un revisor jurídico puede validar el escrito");
-      }
-      const payload: Record<string, unknown> = { status: estado };
-      if (estado === "Validado") {
-        payload["validated_by"] = sesion.userId;
-        payload["validated_at"] = new Date().toISOString();
-      }
-      const { error } = await supabase
-        .from("sanction_drafts")
-        .update(payload as never)
-        .eq("id", borrador.id);
-      if (error) throw error;
-      await supabase.from("sanction_actions").insert({
-        organization_id: sesion.organization?.id,
-        sanction_id: borrador.sanction_id,
-        action_type: "Cambio de estado",
-        description: `Escrito «${borrador.title}» marcado como ${estado.toLowerCase()}.`,
-        performed_by: sesion.userId,
-      } as never);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["borrador", id] });
-      queryClient.invalidateQueries({ queryKey: ["borradores"] });
-      toast.success("Estado actualizado");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const cambiarEstadoMut = useCambiarEstadoBorrador(
+    id,
+    borrador,
+    sesion?.organization?.id,
+    sesion?.userId,
+    esRevisor,
+  );
+  const cambiarEstado = {
+    mutate: (estado: string) =>
+      cambiarEstadoMut.mutate(estado, {
+        onSuccess: () => toast.success("Estado actualizado"),
+        onError: (e: Error) => toast.error(e.message),
+      }),
+  };
 
   function exportarPdf() {
     const ventana = window.open("", "_blank", "noopener,width=900,height=1000");

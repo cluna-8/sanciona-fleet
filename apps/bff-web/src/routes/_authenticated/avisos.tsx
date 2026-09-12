@@ -1,11 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { BellRing, Check } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { useSesion } from "@/hooks/use-org";
-import { useAvisos } from "@/hooks/use-expediente";
-import { supabase } from "@/integrations/supabase/client";
+import { useAvisos, useMarcarAvisosLeidos } from "@/features/avisos";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/avisos")({
@@ -32,24 +30,15 @@ function Avisos() {
   const { data: sesion } = useSesion();
   const orgId = sesion?.organization?.id;
   const { data: avisos } = useAvisos(orgId);
-  const queryClient = useQueryClient();
 
-  const marcar = useMutation({
-    mutationFn: async (id: string | null) => {
-      let consulta = supabase
-        .from("notifications")
-        .update({ read_at: new Date().toISOString() } as never)
-        .eq("organization_id", orgId!);
-      consulta = id ? consulta.eq("id", id) : consulta.is("read_at", null);
-      const { error } = await consulta;
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["avisos"] });
-      toast.success("Avisos actualizados");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const marcarMut = useMarcarAvisosLeidos(orgId);
+  const marcar = {
+    mutate: (id: string | null) =>
+      marcarMut.mutate(id, {
+        onSuccess: () => toast.success("Avisos actualizados"),
+        onError: (e: Error) => toast.error(e.message),
+      }),
+  };
 
   const pendientes = (avisos ?? []).filter((a) => !a.read_at);
 

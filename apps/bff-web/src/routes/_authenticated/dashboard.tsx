@@ -14,6 +14,7 @@ import { useSesion } from "@/hooks/use-org";
 import { useSanciones, type Sancion } from "@/features/expedientes";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TarjetaKpi } from "@/shared/components/TarjetaKpi";
 import { ESTADOS_ABIERTOS, formatoImporte, diasRestantes } from "@/lib/fleet";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -111,16 +112,14 @@ function Dashboard() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
           {tarjetas.map((t) => (
-            <div key={t.titulo} className="card-surface p-4">
-              <div className="flex items-start justify-between gap-2">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  {t.titulo}
-                </p>
-                <t.icono className={`h-4 w-4 ${t.acento}`} />
-              </div>
-              <p className="mt-2 font-display text-2xl font-bold text-foreground">{t.valor}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{t.detalle}</p>
-            </div>
+            <TarjetaKpi
+              key={t.titulo}
+              titulo={t.titulo}
+              valor={t.valor}
+              icono={t.icono}
+              detalle={t.detalle}
+              acento={t.acento}
+            />
           ))}
         </div>
       )}

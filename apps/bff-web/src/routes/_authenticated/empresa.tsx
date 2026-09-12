@@ -1,12 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Building2 } from "lucide-react";
 import { toast } from "sonner";
-import { z } from "zod";
 import { useState } from "react";
 import { AppShell } from "@/components/app-shell";
-import { useSesion, esAdministrador } from "@/hooks/use-org";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  useSesion,
+  esAdministrador,
+  useActualizarOrganizacion,
+  esquemaOrganizacion,
+} from "@/features/organizacion";
+import { ValidationError } from "@/shared/lib/errores";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,37 +20,23 @@ export const Route = createFileRoute("/_authenticated/empresa")({
   component: Empresa,
 });
 
-const esquema = z.object({
-  name: z.string().trim().min(2, "Indica el nombre de la empresa").max(150),
-  cif: z.string().trim().max(20).optional(),
-  address: z.string().trim().max(300).optional(),
-  city: z.string().trim().max(120).optional(),
-  postal_code: z.string().trim().max(10).optional(),
-  province: z.string().trim().max(120).optional(),
-
-  contact_name: z.string().trim().max(120).optional(),
-  contact_email: z.union([z.string().trim().email("Correo no válido").max(255), z.literal("")]),
-  contact_phone: z.string().trim().max(20).optional(),
-});
-
 function Empresa() {
   const { data: sesion } = useSesion();
   const org = sesion?.organization;
   const admin = esAdministrador(sesion?.role);
-  const queryClient = useQueryClient();
   const [errores, setErrores] = useState<Record<string, string>>({});
 
-  const guardar = useMutation({
-    mutationFn: async (form: FormData) => {
-      if (!org) throw new Error("Sin empresa activa");
-      const parsed = esquema.safeParse({
+  const guardarMut = useActualizarOrganizacion(org?.id);
+  const guardar = {
+    isPending: guardarMut.isPending,
+    mutate: (form: FormData) => {
+      const parsed = esquemaOrganizacion.safeParse({
         name: String(form.get("name") ?? ""),
         cif: String(form.get("cif") ?? ""),
         address: String(form.get("address") ?? ""),
         city: String(form.get("city") ?? ""),
         postal_code: String(form.get("postal_code") ?? ""),
         province: String(form.get("province") ?? ""),
-
         contact_name: String(form.get("contact_name") ?? ""),
         contact_email: String(form.get("contact_email") ?? ""),
         contact_phone: String(form.get("contact_phone") ?? ""),
@@ -56,33 +45,33 @@ function Empresa() {
         const errs: Record<string, string> = {};
         for (const i of parsed.error.issues) errs[String(i.path[0])] = i.message;
         setErrores(errs);
-        throw new Error("Revisa los campos marcados");
+        toast.error("Revisa los campos marcados");
+        return;
       }
       setErrores({});
       const d = parsed.data;
-      const { error } = await supabase
-        .from("organizations")
-        .update({
+      guardarMut.mutate(
+        {
           name: d.name,
           cif: d.cif || null,
           address: d.address || null,
           city: d.city || null,
           postal_code: d.postal_code || null,
           province: d.province || null,
-
           contact_name: d.contact_name || null,
           contact_email: d.contact_email || null,
           contact_phone: d.contact_phone || null,
-        } as never)
-        .eq("id", org.id);
-      if (error) throw error;
+        },
+        {
+          onSuccess: () => toast.success("Datos de la empresa actualizados"),
+          onError: (e: Error) => {
+            if (e instanceof ValidationError) setErrores(e.fieldErrors);
+            toast.error(e.message);
+          },
+        },
+      );
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sesion-empresa"] });
-      toast.success("Datos de la empresa actualizados");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  };
 
   return (
     <AppShell titulo="Configuración de la empresa" descripcion="Datos fiscales y de contacto">

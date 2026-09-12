@@ -3,7 +3,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ShieldCheck, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { supabase } from "@/integrations/supabase/client";
+import { suscribirCambiosAuth, obtenerSesionActual, actualizarContrasena } from "@/features/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,13 +50,13 @@ function PaginaResetPassword() {
       return;
     }
     // Si el cliente ya procesó el token, habrá sesión de recuperación activa
-    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+    const cancelar = suscribirCambiosAuth((event, session) => {
       if (event === "PASSWORD_RECOVERY" || session) setEnlaceValido(true);
     });
-    supabase.auth.getSession().then(({ data }) => {
-      setEnlaceValido((v) => v ?? Boolean(data.session));
+    obtenerSesionActual().then((session) => {
+      setEnlaceValido((v) => v ?? Boolean(session));
     });
-    return () => sub.subscription.unsubscribe();
+    return cancelar;
   }, []);
 
   async function guardar(e: React.FormEvent<HTMLFormElement>) {
@@ -74,10 +74,10 @@ function PaginaResetPassword() {
     }
     setErrores({});
     setCargando(true);
-    const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
+    const { error } = await actualizarContrasena(parsed.data.password);
     setCargando(false);
     if (error) {
-      toast.error("No se ha podido actualizar la contraseña", { description: error.message });
+      toast.error("No se ha podido actualizar la contraseña", { description: error });
       return;
     }
     toast.success("Contraseña actualizada", {

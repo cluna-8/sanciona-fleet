@@ -18,7 +18,7 @@ import {
   X,
   ShieldCheck,
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { cerrarSesion } from "@/features/auth";
 import { useSesion, useEmpresaActiva, useEsSuperadmin } from "@/hooks/use-org";
 
 import { etiquetaRol } from "@/lib/fleet";
@@ -64,7 +64,7 @@ export function AppShell({
   async function cerrarSesion() {
     await queryClient.cancelQueries();
     queryClient.clear();
-    await supabase.auth.signOut();
+    await cerrarSesion();
     navigate({ to: "/auth", replace: true });
   }
 

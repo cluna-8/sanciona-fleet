@@ -1,11 +1,20 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { UserCog, UserPlus, Loader2, Trash2 } from "lucide-react";
-import { z } from "zod";
 import { AppShell } from "@/components/app-shell";
-import { useSesion, esAdministrador, useEsSuperadmin } from "@/hooks/use-org";
+import {
+  useSesion,
+  esAdministrador,
+  useEsSuperadmin,
+  useMiembros,
+  useInvitaciones,
+  useCambiarRolMiembro,
+  useCrearInvitacion,
+  useEliminarInvitacion,
+  type Miembro,
+} from "@/features/organizacion";
+import { ValidationError } from "@/shared/lib/errores";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,7 +26,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -32,63 +40,25 @@ export const Route = createFileRoute("/_authenticated/usuarios")({
   component: Usuarios,
 });
 
-type Miembro = {
-  id: string;
-  user_id: string;
-  role: string;
-  status: string;
-  created_at: string;
-  profiles?: { full_name: string | null; email: string | null } | null;
-};
-
 function Usuarios() {
   const { data: sesion } = useSesion();
   const orgId = sesion?.organization?.id;
   const { data: superadmin } = useEsSuperadmin();
   const admin = esAdministrador(sesion?.role) || Boolean(superadmin);
-  const queryClient = useQueryClient();
 
-  const { data: miembros, isLoading } = useQuery({
-    queryKey: ["miembros", orgId],
-    enabled: !!orgId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("organization_members")
-        .select("id, user_id, role, status, created_at")
-        .eq("organization_id", orgId!)
-        .order("created_at");
-      if (error) throw error;
-      const filas = (data ?? []) as Miembro[];
-      const ids = filas.map((m) => m.user_id);
-      if (ids.length) {
-        const { data: perfiles } = await supabase
-          .from("profiles")
-          .select("id, full_name, email")
-          .in("id", ids);
-        const mapa = new Map((perfiles ?? []).map((p) => [p.id, p]));
-        for (const m of filas) {
-          const p = mapa.get(m.user_id);
-          m.profiles = p ? { full_name: p.full_name, email: p.email } : null;
-        }
-      }
-      return filas;
-    },
-  });
+  const { data: miembros, isLoading } = useMiembros(orgId);
 
-  const cambiarRol = useMutation({
-    mutationFn: async ({ id, rol }: { id: string; rol: string }) => {
-      const { error } = await supabase
-        .from("organization_members")
-        .update({ role: rol } as never)
-        .eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["miembros"] });
-      toast.success("Rol actualizado");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const cambiarRolMut = useCambiarRolMiembro(orgId);
+  const cambiarRol = {
+    mutate: ({ id, rol }: { id: string; rol: string }) =>
+      cambiarRolMut.mutate(
+        { id, rol },
+        {
+          onSuccess: () => toast.success("Rol actualizado"),
+          onError: (e: Error) => toast.error(e.message),
+        },
+      ),
+  };
 
   return (
     <AppShell
@@ -159,46 +129,28 @@ function Usuarios() {
   );
 }
 
-const esquemaInvitacion = z.object({
-  email: z.string().trim().email("Correo no válido").max(255),
-  full_name: z.string().trim().min(3, "Indica el nombre completo").max(120),
-});
-
 function InvitarUsuario({ orgId, userId }: { orgId: string; userId: string }) {
-  const queryClient = useQueryClient();
   const [abierto, setAbierto] = useState(false);
   const [rol, setRol] = useState<string>("gestor_sanciones");
   const [errores, setErrores] = useState<Record<string, string>>({});
 
-  const invitar = useMutation({
-    mutationFn: async (form: FormData) => {
-      const parsed = esquemaInvitacion.safeParse({
-        email: String(form.get("email") ?? ""),
-        full_name: String(form.get("full_name") ?? ""),
-      });
-      if (!parsed.success) {
-        const errs: Record<string, string> = {};
-        for (const i of parsed.error.issues) errs[String(i.path[0])] = i.message;
-        setErrores(errs);
-        throw new Error("Revisa los campos marcados");
-      }
+  const invitarMut = useCrearInvitacion(orgId, userId, rol);
+  const invitar = {
+    isPending: invitarMut.isPending,
+    mutate: (form: FormData) => {
       setErrores({});
-      const { error } = await supabase.from("organization_invitations").insert({
-        organization_id: orgId,
-        email: parsed.data.email.toLowerCase(),
-        full_name: parsed.data.full_name,
-        role: rol,
-        invited_by: userId,
-      } as never);
-      if (error) throw error;
+      invitarMut.mutate(form, {
+        onSuccess: () => {
+          setAbierto(false);
+          toast.success("Usuario invitado. Accederá a la empresa al registrarse con ese correo.");
+        },
+        onError: (e: Error) => {
+          if (e instanceof ValidationError) setErrores(e.fieldErrors);
+          toast.error(e.message);
+        },
+      });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["invitaciones"] });
-      setAbierto(false);
-      toast.success("Usuario invitado. Accederá a la empresa al registrarse con ese correo.");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  };
 
   return (
     <Dialog open={abierto} onOpenChange={setAbierto}>
@@ -262,31 +214,17 @@ function InvitarUsuario({ orgId, userId }: { orgId: string; userId: string }) {
 }
 
 function Invitaciones({ orgId }: { orgId: string }) {
-  const queryClient = useQueryClient();
-  const { data: invitaciones } = useQuery({
-    queryKey: ["invitaciones", orgId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("organization_invitations")
-        .select("id, email, full_name, role, status, created_at")
-        .eq("organization_id", orgId)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
+  const { data: invitaciones } = useInvitaciones(orgId);
 
-  const eliminar = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("organization_invitations").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["invitaciones"] });
-      toast.success("Invitación eliminada");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const eliminarMut = useEliminarInvitacion(orgId);
+  const eliminar = {
+    isPending: eliminarMut.isPending,
+    mutate: (id: string) =>
+      eliminarMut.mutate(id, {
+        onSuccess: () => toast.success("Invitación eliminada"),
+        onError: (e: Error) => toast.error(e.message),
+      }),
+  };
 
   if (!invitaciones || invitaciones.length === 0) return null;
 

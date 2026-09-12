@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, Building2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
-import { z } from "zod";
-import { supabase } from "@/integrations/supabase/client";
-import { useSesion } from "@/hooks/use-org";
+import {
+  useSesion,
+  useCrearOrganizacionYAsignarme,
+  esquemaOrganizacionNueva,
+} from "@/features/organizacion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,20 +16,12 @@ export const Route = createFileRoute("/_authenticated/empresa-nueva")({
   component: NuevaEmpresa,
 });
 
-const esquema = z.object({
-  name: z.string().trim().min(2, "Indica el nombre de la empresa").max(150),
-  cif: z.string().trim().max(20).optional().or(z.literal("")),
-  address: z.string().trim().max(300).optional().or(z.literal("")),
-  contact_name: z.string().trim().max(120).optional().or(z.literal("")),
-  contact_email: z.string().trim().max(255).email("Correo no válido").optional().or(z.literal("")),
-  contact_phone: z.string().trim().max(30).optional().or(z.literal("")),
-});
+const esquema = esquemaOrganizacionNueva;
 
 function NuevaEmpresa() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const { data: sesion, isLoading } = useSesion();
-  const [cargando, setCargando] = useState(false);
+  const crearMut = useCrearOrganizacionYAsignarme(sesion?.userId);
 
   useEffect(() => {
     if (!isLoading && sesion?.organization) navigate({ to: "/dashboard", replace: true });
@@ -42,42 +35,24 @@ function NuevaEmpresa() {
       toast.error("Revisa los datos", { description: parsed.error.issues[0]?.message });
       return;
     }
-    setCargando(true);
-    const { data: org, error } = await supabase
-      .from("organizations")
-      .insert({
+    crearMut.mutate(
+      {
         name: parsed.data.name,
         cif: parsed.data.cif || null,
         address: parsed.data.address || null,
         contact_name: parsed.data.contact_name || null,
         contact_email: parsed.data.contact_email || null,
         contact_phone: parsed.data.contact_phone || null,
-      })
-      .select("id")
-      .single();
-
-    if (error || !org) {
-      setCargando(false);
-      toast.error("No se ha podido crear la empresa", { description: error?.message });
-      return;
-    }
-
-    const { error: errorMiembro } = await supabase.from("organization_members").insert({
-      organization_id: org.id,
-      user_id: sesion!.userId,
-      role: "admin_empresa",
-      status: "activo",
-    });
-    setCargando(false);
-    if (errorMiembro) {
-      toast.error("No se ha podido asignar tu usuario a la empresa", {
-        description: errorMiembro.message,
-      });
-      return;
-    }
-    await queryClient.invalidateQueries();
-    toast.success("Empresa creada correctamente");
-    navigate({ to: "/dashboard", replace: true });
+      },
+      {
+        onSuccess: () => {
+          toast.success("Empresa creada correctamente");
+          navigate({ to: "/dashboard", replace: true });
+        },
+        onError: (e: Error) =>
+          toast.error("No se ha podido crear la empresa", { description: e.message }),
+      },
+    );
   }
 
   return (
@@ -125,8 +100,8 @@ function NuevaEmpresa() {
               <Input id="contact_email" name="contact_email" type="email" maxLength={255} />
             </div>
           </div>
-          <Button type="submit" disabled={cargando}>
-            {cargando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          <Button type="submit" disabled={crearMut.isPending}>
+            {crearMut.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Crear empresa
           </Button>
         </form>

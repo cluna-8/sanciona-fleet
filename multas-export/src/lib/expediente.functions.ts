@@ -1,7 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { EntradaPlazos } from "@/lib/plazos";
-import { calcularPlazosRemoto } from "@/lib/deadlines-client.server";
+import { calcularPlazos, type EntradaPlazos } from "@/lib/plazos";
 import { parseImporte } from "@/lib/fleet";
 import {
   SISTEMA_ANALISIS,
@@ -705,7 +704,7 @@ async function guardarPlazos(
   sanctionId: string,
   entrada: EntradaPlazos,
 ) {
-  const plazos = await calcularPlazosRemoto(sanctionId, entrada);
+  const plazos = calcularPlazos(entrada);
   if (plazos.length === 0) return plazos;
   await supabase
     .from("sanction_deadlines")

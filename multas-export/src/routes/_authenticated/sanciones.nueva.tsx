@@ -165,6 +165,7 @@ function NuevaSancion() {
         <AltaDesdeDocumento orgId={orgId} userId={sesion?.userId} />
       </div>
 
+
       <div className="mb-3">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Alta manual del expediente
@@ -174,7 +175,8 @@ function NuevaSancion() {
         </p>
       </div>
 
-      {
+      {(
+
         <form
           className="grid gap-6 lg:grid-cols-3"
           onSubmit={(e) => {
@@ -314,52 +316,9 @@ function NuevaSancion() {
               </Campo>
             </div>
 
-            <div className="card-surface space-y-4 p-5">
-              <h2 className="text-base font-semibold">Documento adjunto (opcional)</h2>
-              <Campo label="Tipo de documento">
-                <Select value={tipoDoc} onValueChange={setTipoDoc}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TIPOS_DOCUMENTO.map((t) => (
-                      <SelectItem key={t} value={t}>
-                        {t}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Campo>
-              <Campo label="Archivo (PDF, JPG o PNG, máx. 15 MB)">
-                <Input
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0] ?? null;
-                    if (f && f.size > 15 * 1024 * 1024) {
-                      toast.error("El archivo supera los 15 MB permitidos");
-                      e.target.value = "";
-                      setArchivo(null);
-                      return;
-                    }
-                    setArchivo(f);
-                  }}
-                />
-              </Campo>
-            </div>
-
-            <Button type="submit" className="w-full" disabled={crear.isPending}>
-              {crear.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Registrando expediente…
-                </>
-              ) : (
-                "Registrar expediente"
-              )}
-            </Button>
           </div>
         </form>
-      }
+      )}
     </AppShell>
   );
 }

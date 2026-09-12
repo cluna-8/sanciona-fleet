@@ -9,19 +9,13 @@
  *    consumidor que aún no tenga un binding directo.
  *
  * Sin base de datos ni llamadas externas: es lógica pura, por diseño, para que
- * su comportamiento sea 100 % determinista y testeable.
+ * su comportamiento sea 100 % determinista y testeable. La lógica HTTP en sí
+ * vive en http.ts, sin depender de `cloudflare:workers`, para poder
+ * reutilizarla también fuera de workerd (ver local-dev-server.ts).
  */
 import { WorkerEntrypoint } from "cloudflare:workers";
 import type { PeticionCalculoPlazos, RespuestaCalculoPlazos } from "@sanciona/contracts";
-import { calcularPlazos } from "./plazos";
-
-function calcular(peticion: PeticionCalculoPlazos): RespuestaCalculoPlazos {
-  return {
-    sanction_id: peticion.sanction_id,
-    plazos: calcularPlazos(peticion.entrada),
-    calculado_en: new Date().toISOString(),
-  };
-}
+import { calcular, manejarFetch } from "./http";
 
 export default class DeadlinesService extends WorkerEntrypoint {
   /** Punto de entrada RPC: `env.DEADLINES.calcular(peticion)` desde otro Worker. */
@@ -29,29 +23,7 @@ export default class DeadlinesService extends WorkerEntrypoint {
     return calcular(peticion);
   }
 
-  async fetch(request: Request): Promise<Response> {
-    const url = new URL(request.url);
-
-    if (url.pathname === "/health") {
-      return Response.json({ service: "deadlines-service", status: "ok" });
-    }
-
-    if (url.pathname === "/calcular" && request.method === "POST") {
-      let body: PeticionCalculoPlazos;
-      try {
-        body = await request.json();
-      } catch {
-        return Response.json({ error: "JSON inválido" }, { status: 400 });
-      }
-      if (!body?.sanction_id || !body?.entrada) {
-        return Response.json(
-          { error: "Faltan campos obligatorios: sanction_id, entrada" },
-          { status: 400 },
-        );
-      }
-      return Response.json(calcular(body));
-    }
-
-    return Response.json({ error: "Not found" }, { status: 404 });
+  fetch(request: Request): Promise<Response> {
+    return manejarFetch(request);
   }
 }

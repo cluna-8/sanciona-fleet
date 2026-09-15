@@ -1,5 +1,7 @@
 # Sanciona Fleet
 
+Repositorio: [github.com/cluna-8/sanciona-fleet](https://github.com/cluna-8/sanciona-fleet) (privado).
+
 Gestión de expedientes sancionadores para empresas españolas de transporte de
 mercancías por carretera. Recibe la notificación de la multa, extrae los datos
 con IA, calcula los plazos legales con un motor determinista, ofrece un análisis
@@ -17,6 +19,8 @@ obligatoria**.
 | [`TAREAS-CRISTIAN.md`](TAREAS-CRISTIAN.md) | Decisiones y gestiones humanas pendientes |
 | [`docs/adr/`](docs/adr/) | Decisiones de arquitectura y su porqué |
 | [`docs/legacy/INVENTARIO-AS-IS.md`](docs/legacy/INVENTARIO-AS-IS.md) | Diagnóstico del prototipo de Lovable del que nace todo |
+| [`docs/spec/06-arquitectura-bff-web.md`](docs/spec/06-arquitectura-bff-web.md) | Qué hace el frontend y cómo está construido por dentro |
+| [`docs/deploy/ELEA-RUNBOOK.md`](docs/deploy/ELEA-RUNBOOK.md) | Cómo levantar el stack local y qué falta para llevarlo a un servidor |
 
 ## Estructura
 
@@ -49,15 +53,25 @@ bunx tsc --noEmit        # dentro de cada paquete
 Requiere [Bun](https://bun.sh). El lockfile es de texto y hay una guardia de
 supply-chain de 24 h configurada en `bunfig.toml`.
 
+### Levantar todo en local (Docker)
+
+```sh
+cp apps/bff-web/.env.example apps/bff-web/.env   # rellenar con credenciales de Supabase
+docker compose up -d --build
+# bff-web       http://localhost:8080
+# deadlines     http://localhost:8787
+```
+
 ## Estado
 
 | Pieza | Estado |
 |---|---|
-| Especificación funcional | v0.2 — 10 decisiones de producto pendientes |
+| Especificación funcional | v0.3 — 12 decisiones de producto pendientes (SPEC.md) |
+| `apps/bff-web` | Sin acoplamiento a Lovable, capa de datos modularizada por feature. Verificado con Docker real (alta de cuenta, login, panel de control) |
 | `deadlines-service` | Funcional, 16 tests. **Pendiente de validación jurídica** |
 | `ai-provider` | Funcional, 31 tests |
-| Resto de servicios | No empezados |
-| Despliegue | No configurado |
+| Resto de servicios | No empezados — sus features ya están aisladas en `apps/bff-web` para extraerlas (ver `docs/spec/06-arquitectura-bff-web.md`) |
+| Despliegue | Local con Docker, verificado. Producción: sin configurar — ver `docs/deploy/ELEA-RUNBOOK.md` |
 
 ## Licencia
 

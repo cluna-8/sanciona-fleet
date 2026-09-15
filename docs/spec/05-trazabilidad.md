@@ -3,7 +3,7 @@
 Qué está hecho, qué falta y dónde vive cada cosa. Es la respuesta corta a
 "¿cómo va el proyecto?".
 
-Actualizado: 12 de septiembre de 2026.
+Actualizado: 15 de septiembre de 2026.
 
 ---
 
@@ -16,9 +16,11 @@ Actualizado: 12 de septiembre de 2026.
 | De ellos, `[NUEVO]` (pendientes de construir) | 19 |
 | Requisitos sin RF asignado (capacidades añadidas en Lovable) | 4 |
 | Decisiones de producto pendientes | 10 |
-| Servicios extraídos del monolito | 1 de 12 |
+| Servicios extraídos del monolito (desplegados por separado) | 1 de 12 |
+| Features modularizadas dentro de `apps/bff-web` (preparación para extraer) | 10 de 10 |
 | Tests automáticos | 47 |
 | Cobertura de tests | solo `deadlines-service` y `ai-provider` |
+| Repositorio | [github.com/cluna-8/sanciona-fleet](https://github.com/cluna-8/sanciona-fleet) (privado) |
 
 ---
 
@@ -28,12 +30,13 @@ Actualizado: 12 de septiembre de 2026.
 |---|---|:---:|---|
 | Motor de plazos | `services/deadlines-service` | 16 ✅ | Funcional. ⚠️ Pendiente validación jurídica y festivos (RF-PLAZO-5) |
 | Interfaz de IA | `packages/ai-provider` | 31 ✅ | Funcional. 4 proveedores intercambiables |
-| Contratos compartidos | `packages/contracts` | — | Tipos de plazos y de IA |
-| CI | `.github/workflows/ci.yml` | — | Typecheck por paquete + tests |
+| Contratos compartidos | `packages/contracts` | — | Tipos de plazos, de IA y de dominio (`domain.ts`) |
+| CI | `.github/workflows/ci.yml` | — | Typecheck por paquete + lint + build de bff-web + tests |
 | Comparador con Lovable | `scripts/comparar-lovable.sh` | — | Detecta divergencia del prototipo |
+| Frontend (`apps/bff-web`) | `apps/bff-web/src/features/*` | — | Sin acoplamiento a Lovable; 10 features modularizadas, capa de datos separada de la UI. Verificado con `docker compose up` real (alta de cuenta, login, panel de control). Detalle completo en `docs/spec/06-arquitectura-bff-web.md` y ADR 0002 |
 
-Todo lo demás sigue dentro del monolito heredado (`multas-export/`), que
-funciona pero no es la base de despliegue.
+`multas-export/` queda congelado como espejo de solo lectura del export de
+Lovable — el desarrollo real vive en `apps/bff-web/`.
 
 ---
 
@@ -116,7 +119,25 @@ Adónde irá cada requisito cuando se complete la migración (SPEC.md §7.1):
 
 ---
 
-## 5. Cómo mantener esto vivo
+## 5. Refactor del frontend — estado de las 4 etapas
+
+Ver `docs/refactor/PLAN-REFACTOR-FRONTEND.md` (el plan) y
+`docs/spec/06-arquitectura-bff-web.md` (el resultado, con detalle técnico).
+
+| Etapa | Qué era | Estado |
+|---|---|---|
+| 1. Cimientos | Vite explícito sin Lovable, poda de dependencias, CI | ✅ Completa |
+| 2. Capa de datos por feature | Sacar `supabase.from(...)` de rutas/componentes a `features/*/api` | ✅ Completa — 0 coincidencias de `supabase` en `src/routes` o `src/components`, regla de ESLint que lo bloquea a futuro |
+| 3. Descomposición de componentes | Dividir los 8 archivos de 300-760 líneas | 🟡 Parcial — componentes compartidos creados y adoptados en el dashboard; los archivos de mayor riesgo (`expediente.functions.ts`, `alta-documento.tsx`) sin tocar a propósito (ver ADR 0002) |
+| 4. Verificación end-to-end | Docker local + prueba real | ✅ Completa — `docker compose up` con ambos servicios, alta de cuenta y login reales verificados |
+
+**Antes de continuar la Etapa 3**: hace falta una base de regresión visual
+(Playwright) contra un proyecto de Supabase de test, no el de producción.
+Sin eso, dividir `expediente.functions.ts` (lógica de plazos y IA, con
+consecuencia legal directa) es el riesgo que el plan señala en §1.6 — no un
+atajo aceptable.
+
+## 6. Cómo mantener esto vivo
 
 1. **Cita el RF en el commit.** `git log --grep=RF-PLAZO` debe responder qué se
    hizo de ese requisito.

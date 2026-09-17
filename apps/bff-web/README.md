@@ -32,7 +32,9 @@ bun run build        # build de producción (Nitro, target Cloudflare)
 
 ## Estado
 
-Etapa 1 del plan de refactor completada: compila y construye sin Lovable,
-dependencias podadas, CI en verde. Etapas 2-4 (capa de datos por feature,
-descomposición de componentes, conexión a microservicios) en curso — ver el
-plan para el detalle.
+Etapas 1–3 del plan de refactor completadas: compila y construye sin Lovable,
+dependencias podadas; la capa de datos vive por feature (`features/*/api/`); y
+ningún archivo bajo `features/` o `routes/` supera 250 líneas ni más de 5
+`useState` (gate en CI: `bun run check:sizes`). Pendiente: Etapa 2.5 (limpieza
+de `as never`, aplazada a la unificación de enums de 2.1) y Etapa 4 (conexión a
+microservicios). Ver el plan para el detalle.

@@ -41,6 +41,12 @@ jobs:
         working-directory: apps/bff-web
         run: bunx eslint .
 
+      # Etapa 3: ningún archivo bajo src/features ni src/routes supera 250
+      # líneas (criterio de salida del refactor de componentes).
+      - name: Gate de 250 líneas (bff-web)
+        working-directory: apps/bff-web
+        run: bun run check:sizes
+
       - name: Build bff-web
         working-directory: apps/bff-web
         env:

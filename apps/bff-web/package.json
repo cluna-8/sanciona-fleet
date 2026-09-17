@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check:sizes": "node scripts/check-line-limit.mjs"
   },
   "overrides": {
     "rolldown": "1.2.1"

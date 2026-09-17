@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Loader2, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
-import { AppShell } from "@/components/app-shell";
+import { AppShell } from "@/shared/components/AppShell";
 import {
   useSesion,
   esAdministrador,
@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { etiquetaRol } from "@/lib/fleet";
+import { etiquetaRol } from "@/shared/lib/formato";
 
 export const Route = createFileRoute("/_authenticated/empresa")({
   component: Empresa,

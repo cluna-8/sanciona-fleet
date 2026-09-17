@@ -37,10 +37,16 @@ export default tseslint.config(
     },
   },
   {
-    // Etapa 2 del plan de refactor (docs/refactor/PLAN-REFACTOR-FRONTEND.md §2.6):
-    // ninguna ruta ni componente habla con Supabase directamente. Solo
-    // features/*/api/* y los módulos *.server.ts / *.functions.ts lo hacen.
-    files: ["src/routes/**/*.{ts,tsx}", "src/components/**/*.{ts,tsx}"],
+    // Etapa 2/3 del plan de refactor (docs/refactor/PLAN-REFACTOR-FRONTEND.md
+    // §2.6 y §cierre): ninguna ruta ni componente/página de feature habla con
+    // Supabase directamente. Solo features/*/api/* y los módulos *.server.ts /
+    // *.functions.ts lo hacen.
+    files: [
+      "src/routes/**/*.{ts,tsx}",
+      "src/components/**/*.{ts,tsx}",
+      "src/features/**/components/**/*.{ts,tsx}",
+      "src/features/**/pages/**/*.{ts,tsx}",
+    ],
     rules: {
       "no-restricted-imports": [
         "error",

@@ -20,10 +20,10 @@ import {
 } from "lucide-react";
 import { cerrarSesion } from "@/features/auth";
 import { useSesion, useEmpresaActiva, useEsSuperadmin } from "@/hooks/use-org";
-
-import { etiquetaRol } from "@/lib/fleet";
+import { etiquetaRol } from "@/shared/lib/formato";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { EncabezadoPagina } from "@/shared/components/EncabezadoPagina";
 
 const NAV = [
   { to: "/dashboard", label: "Resumen", icon: LayoutDashboard },
@@ -61,7 +61,10 @@ export function AppShell({
     ? [...NAV, { to: "/superadmin", label: "Superadministración", icon: ShieldCheck } as const]
     : NAV;
 
-  async function cerrarSesion() {
+  // FIXME: esta función sombra el `cerrarSesion` importado de features/auth y se
+  // llama a sí misma (recursión). Bug preexistente; fuera de alcance de la
+  // Etapa 3 (la etapa sólo mandate arreglar el bug de edición de borradores).
+  async function cerrarSesionHandler() {
     await queryClient.cancelQueries();
     queryClient.clear();
     await cerrarSesion();
@@ -135,7 +138,7 @@ export function AppShell({
             </div>
           </div>
           <button
-            onClick={cerrarSesion}
+            onClick={cerrarSesionHandler}
             className="mt-1 flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-navy-foreground/70 transition-colors hover:bg-white/8 hover:text-navy-foreground"
           >
             <LogOut className="h-4 w-4" /> Cerrar sesión
@@ -163,15 +166,7 @@ export function AppShell({
             >
               <Menu className="h-5 w-5" />
             </Button>
-            <div className="min-w-0 flex-1">
-              <h1 className="truncate font-display text-xl font-bold text-foreground sm:text-2xl">
-                {titulo}
-              </h1>
-              {descripcion && (
-                <p className="mt-0.5 truncate text-sm text-muted-foreground">{descripcion}</p>
-              )}
-            </div>
-            {acciones && <div className="flex flex-wrap items-center gap-2">{acciones}</div>}
+            <EncabezadoPagina titulo={titulo} descripcion={descripcion} acciones={acciones} />
           </div>
           {sesion?.organization && (
             <div className="border-t border-border bg-secondary/60 px-4 py-1.5 text-xs text-muted-foreground sm:px-6">

@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ShieldAlert } from "lucide-react";
-import { AppShell } from "@/components/app-shell";
+import { AppShell } from "@/shared/components/AppShell";
 import { useSesion } from "@/hooks/use-org";
 import { useSanciones } from "@/features/expedientes";
-import { formatoImporte } from "@/lib/fleet";
+import { formatoImporte } from "@/shared/lib/formato";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/_authenticated/prevencion")({

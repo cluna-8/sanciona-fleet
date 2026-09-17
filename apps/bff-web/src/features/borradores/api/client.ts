@@ -1,6 +1,6 @@
 /** Único módulo que conoce Supabase para sanction_drafts /
  * sanction_draft_versions. La generación en sí es un server fn
- * (lib/expediente.functions.ts). SPEC.md §7.1 (drafts-service). */
+ * (features/borradores/api/generarBorrador.ts). SPEC.md §7.1 (drafts-service). */
 import { supabase } from "@/integrations/supabase/client";
 
 export type Borrador = {

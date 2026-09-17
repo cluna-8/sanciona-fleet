@@ -323,6 +323,15 @@ tocar UI todavía), SPEC §7.2 (contratos), §7.5 paso 5.
 **Objetivo.** Ningún archivo de `features/` o `routes/` supera 250 líneas ni
 tiene más de 5 `useState`. Los formularios usan react-hook-form + Zod.
 
+> **Estado: ✅ Completada** (PR `refactor(bff-web): Etapa 3`). Las 8 tareas
+> (3.1–3.8) están aplicadas; el gate de 250 líneas (`bun run check:sizes`,
+> `scripts/check-line-limit.mjs`) corren en CI; `no-restricted-imports` cubre
+> `features/**/components` y `features/**/pages`. Las 8 rutas sobrecargadas
+> quedaron en `createFileRoute` + `<PaginaX/>`; el wizard de extracción usa
+> `useReducer` (16 tests). **Pendiente:** Etapa 2.5 (limpieza de `as never`)
+> sigue aplazada a 2.1 (unificar enums de `@sanciona/contracts` con los
+> generados de Supabase); los `as never` se movieron sin tocar (move-only).
+
 | # | Tarea | Detalle |
 |---|---|---|
 | 3.1 | `shared/components` | `TarjetaKpi` (dashboard, informes, prevención), `FiltroSelect` (sanciones, documentos), `TablaDatos` con paginación, `EstadoCarga`, `EstadoVacio`, `EncabezadoPagina`. Cada uno reemplaza markup duplicado; se adopta `ui/card.tsx` en vez de `div` a mano |

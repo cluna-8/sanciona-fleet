@@ -10,7 +10,7 @@ import { ListaComentarios } from "@/features/expedientes/components/ListaComenta
 import { HistorialActuaciones } from "@/features/expedientes/components/HistorialActuaciones";
 import { SelectorEstado } from "@/features/expedientes/components/SelectorEstado";
 import { PanelExtraccion } from "@/features/extraccion/components/PanelExtraccion";
-import { PanelAnalisis } from "@/components/panel-analisis";
+import { PanelAnalisis } from "@/features/analisis/components/PanelAnalisis";
 
 /**
  * Ficha de expediente. Antes era el componente `FichaSancion` (363 líneas) en

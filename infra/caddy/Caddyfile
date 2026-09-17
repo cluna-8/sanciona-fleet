@@ -1,0 +1,36 @@
+# Caddyfile de Sanciona Fleet (ADR 0003). Reverse proxy + TLS automático.
+#
+# __DOMAIN__ se sustituye por el dominio real en el user_data / reload-caddy.sh.
+# Caddy obtiene certificados Let's Encrypt por HTTP-01 (puerto 80 abierto).
+# Cloudflare delante en modo Full (strict): TLS edge de Cloudflare + este cert
+# al origen. Si Cloudflare proxy está activado, Caddy usa el puerto 80/443
+# directo; los desafíos HTTP-01 pasan por el proxy de Cloudflare (compatible).
+#
+# Backend: bff-web en 127.0.0.1:8080 (contenedor, puerto publicado en loopback).
+# /health se sirve directo (público, para healthchecks del target/CF).
+
+__DOMAIN__ {
+	encode zstd gzip
+
+	# Healthcheck público (ruta SSR de TanStack Start).
+	handle /health {
+		reverse_proxy 127.0.0.1:8080
+	}
+
+	# Todo lo demás al bff-web (SSR + server functions RPC).
+	reverse_proxy 127.0.0.1:8080
+
+	# Cabeceras de seguridad básicas.
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		# CSP: la app carga Supabase y (en su momento) fuentes. Ajustar si añades
+		# dominios externos. Por ahora solo self + Supabase.
+		Content-Security-Policy "default-src 'self'; img-src 'self' data: https://*.supabase.co; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co https://openrouter.ai; font-src 'self'; frame-ancestors 'none'"
+	}
+
+	request_body {
+		max_size 25MB  # documentos sancionadores escaneados
+	}
+}

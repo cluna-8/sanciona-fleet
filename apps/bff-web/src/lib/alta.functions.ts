@@ -118,7 +118,11 @@ export const crearAlta = createServerFn({ method: "POST" })
         .eq("id", organizationId);
     }
 
-    const url = process.env["PUBLIC_SITE_URL"] ?? "https://sanciona.lovable.app";
+    const url = process.env["PUBLIC_SITE_URL"];
+    if (!url)
+      throw new Error(
+        "Falta la variable de entorno PUBLIC_SITE_URL (URL pública de la plataforma).",
+      );
     const envio = await enviarCorreo({
       to: email,
       subject: "Tus datos de acceso a Sanciona Fleet",

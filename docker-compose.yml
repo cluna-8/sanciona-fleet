@@ -1,8 +1,6 @@
-# Stack de prueba LOCAL de Sanciona Fleet (Etapa 4 del plan de refactor,
-# docs/refactor/PLAN-REFACTOR-FRONTEND.md). No es el despliegue de producción:
-# bff-web se despliega como Cloudflare Worker (`wrangler deploy`) y
-# deadlines-service igual — aquí solo se contenerizan para poder verificar
-# en local, con un solo comando, que hablan entre sí antes de pasar a Elea.
+# Stack de prueba LOCAL de Sanciona Fleet. No es el de producción: bff-web corre
+# en modo `vite dev` (Dockerfile.dev). El stack de producción es
+# docker-compose.prod.yml (build Nitro node-server). Ver ADR 0003.
 #
 # Uso:
 #   docker compose up --build
@@ -30,7 +28,7 @@ services:
   bff-web:
     build:
       context: .
-      dockerfile: apps/bff-web/Dockerfile
+      dockerfile: apps/bff-web/Dockerfile.dev
     ports:
       - "8080:8080"
     env_file:

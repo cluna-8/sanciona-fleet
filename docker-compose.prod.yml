@@ -1,0 +1,56 @@
+# Stack de PRODUCCIÓN de Sanciona Fleet en AWS (EC2 + Docker). Ver ADR 0003.
+#
+# A diferencia de docker-compose.yml (dev), bff-web usa el build de producción
+# (Dockerfile.prod: Nitro node-server, no vite dev) y deadlines-service corre su
+# runtime Bun HTTP (local-dev-server.ts reutiliza la misma lógica que el Worker).
+#
+# Uso en EC2:
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Requiere apps/bff-web/.env (no commiteado) con las credenciales reales de
+# Supabase + IA (IA_PROVEEDOR=openrouter, IA_API_KEY, IA_MODELO_*) + Resend +
+# PUBLIC_SITE_URL. En producción estos secretos se inyectan desde AWS SSM
+# Parameter Store, no se escriben en el repo.
+
+services:
+  deadlines-service:
+    # En EC2 se hace pull de ECR (ECR_DEADLINES_IMAGE). En local, `up --build`
+    # usa el Dockerfile de abajo.
+    image: ${ECR_DEADLINES_IMAGE:-sanciona-fleet/deadlines-service:latest}
+    build:
+      context: .
+      dockerfile: services/deadlines-service/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8787:8787"
+    healthcheck:
+      test: ["CMD", "bun", "-e", "fetch('http://localhost:8787/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  bff-web:
+    # En EC2 se hace pull de ECR (ECR_BFF_WEB_IMAGE). En local, `up --build`
+    # construye con el Dockerfile.prod de abajo.
+    image: ${ECR_BFF_WEB_IMAGE:-sanciona-fleet/bff-web:latest}
+    build:
+      context: .
+      dockerfile: apps/bff-web/Dockerfile.prod
+      args:
+        # VITE_* se inyectan en compile-time. En CI se pasan desde secretos/SSM.
+        # Si no se pasan, el cliente no tendrá la URL de Supabase.
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY}
+        VITE_SUPABASE_PROJECT_ID: ${VITE_SUPABASE_PROJECT_ID}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    env_file:
+      - apps/bff-web/.env
+    environment:
+      DEADLINES_SERVICE_URL: http://deadlines-service:8787
+      NODE_ENV: production
+    depends_on:
+      deadlines-service:
+        condition: service_healthy

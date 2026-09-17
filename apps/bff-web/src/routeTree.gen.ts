@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AltaRouteImport } from './routes/alta'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as HealthRouteImport } from './routes/health'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedAvisosRouteImport } from './routes/_authenticated/avisos'
 import { Route as AuthenticatedCalendarioRouteImport } from './routes/_authenticated/calendario'
@@ -51,6 +52,11 @@ const AltaRoute = AltaRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HealthRoute = HealthRouteImport.update({
+  id: '/health',
+  path: '/health',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -167,6 +173,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/alta': typeof AltaRoute
   '/auth': typeof AuthRoute
+  '/health': typeof HealthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/avisos': typeof AuthenticatedAvisosRoute
   '/calendario': typeof AuthenticatedCalendarioRoute
@@ -192,6 +199,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/alta': typeof AltaRoute
   '/auth': typeof AuthRoute
+  '/health': typeof HealthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/avisos': typeof AuthenticatedAvisosRoute
   '/calendario': typeof AuthenticatedCalendarioRoute
@@ -219,6 +227,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/alta': typeof AltaRoute
   '/auth': typeof AuthRoute
+  '/health': typeof HealthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/avisos': typeof AuthenticatedAvisosRoute
   '/_authenticated/calendario': typeof AuthenticatedCalendarioRoute
@@ -246,6 +255,7 @@ export interface FileRouteTypes {
     | '/'
     | '/alta'
     | '/auth'
+    | '/health'
     | '/reset-password'
     | '/avisos'
     | '/calendario'
@@ -271,6 +281,7 @@ export interface FileRouteTypes {
     | '/'
     | '/alta'
     | '/auth'
+    | '/health'
     | '/reset-password'
     | '/avisos'
     | '/calendario'
@@ -297,6 +308,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/alta'
     | '/auth'
+    | '/health'
     | '/reset-password'
     | '/_authenticated/avisos'
     | '/_authenticated/calendario'
@@ -324,6 +336,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AltaRoute: typeof AltaRoute
   AuthRoute: typeof AuthRoute
+  HealthRoute: typeof HealthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
 }
 
@@ -355,6 +368,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/health': {
+      id: '/health'
+      path: '/health'
+      fullPath: '/health'
+      preLoaderRoute: typeof HealthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -552,6 +572,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AltaRoute: AltaRoute,
   AuthRoute: AuthRoute,
+  HealthRoute: HealthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
 }
 export const routeTree = rootRouteImport

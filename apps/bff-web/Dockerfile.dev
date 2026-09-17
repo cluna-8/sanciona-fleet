@@ -1,0 +1,28 @@
+# Imagen de DESARROLLO/prueba local de bff-web (vite dev). Construida desde la
+# raíz del monorepo porque depende de los workspaces (@sanciona/contracts,
+# @sanciona/ai-provider). No es apta para producción. La imagen de producción
+# es `Dockerfile.prod` (build Nitro node-server); ver ADR 0003.
+# Uso: docker-compose.yml (stack local) apunta a este archivo.
+FROM oven/bun:1.4-slim AS base
+WORKDIR /repo
+
+# Copiamos primero solo lo necesario para resolver dependencias (mejor cache).
+COPY package.json bun.lock ./
+COPY packages/contracts/package.json packages/contracts/package.json
+COPY packages/ai-provider/package.json packages/ai-provider/package.json
+COPY services/deadlines-service/package.json services/deadlines-service/package.json
+COPY apps/bff-web/package.json apps/bff-web/package.json
+
+RUN bun install --frozen-lockfile
+
+# Ahora el código completo.
+COPY packages/contracts packages/contracts
+COPY packages/ai-provider packages/ai-provider
+COPY apps/bff-web apps/bff-web
+
+WORKDIR /repo/apps/bff-web
+EXPOSE 8080
+
+# Modo dev (Vite + TanStack Start sirven SSR directamente sobre Bun). El build de
+# producción usa el preset Nitro "node-server" (Dockerfile.prod), no este modo.
+CMD ["bun", "run", "dev", "--", "--host", "0.0.0.0", "--port", "8080"]

@@ -57,7 +57,10 @@ export default defineConfig(({ mode, command }) => {
         },
       }),
       // Nitro solo participa en build: en dev, TanStack Start sirve directo.
-      ...(command === "build" ? [nitro({ preset: "cloudflare-module" })] : []),
+      // Preset configurable por `NITRO_PRESET` (ADR 0003): por defecto `node-server`
+      // para despliegue en AWS (EC2 + Docker); `cloudflare-module` sigue siendo
+      // posible con NITRO_PRESET=cloudflare-module.
+      ...(command === "build" ? [nitro({ preset: process.env["NITRO_PRESET"] ?? "node-server" })] : []),
       viteReact(),
     ],
   };

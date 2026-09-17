@@ -8,6 +8,12 @@
   ],
   "scripts": {
     "test": "bun test",
-    "test:deadlines": "cd services/deadlines-service && bun test"
+    "test:deadlines": "cd services/deadlines-service && bun test",
+    "db:migrar": "bun run scripts/db/migrar.ts",
+    "db:migrar:dry": "DRY_RUN=1 bun run scripts/db/migrar.ts"
+  },
+  "devDependencies": {
+    "pg": "^8.13.0",
+    "@types/pg": "^8.11.10"
   }
 }

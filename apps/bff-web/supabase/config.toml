@@ -1,1 +1,43 @@
-project_id = "yaqnvsijescamfjfncus"
+# config.toml de Supabase para el proyecto Sanciona Fleet (apps/bff-web).
+#
+# Uso LOCAL (Supabase CLI): `supabase start` levanta un stack local con Docker.
+# Uso REMOTO (prod): las migraciones se aplican con scripts/db/migrar.ts contra
+# la base gestionada (ver docs/deploy/DATABASE.md). No se usa `supabase db push`
+# en CI para no depender del CLI; el script usa la cadena de conexión directa.
+#
+# project_id es solo un alias local; el ref real del proyecto va en SUPABASE_URL
+# y SUPABASE_DB_URL (por entorno, ver .env.example y ssm.tf).
+
+project_id = "sanciona-fleet"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[auth]
+enabled = true
+site_url = "http://localhost:8080"
+additional_redirect_urls = ["https://localhost:8080"]
+jwt_expiry = 3600
+enable_signup = true
+enable_anonymous_sign_ins = false
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false
+
+[storage]
+enabled = true
+file_size_limit = "25MiB"
+
+# La base gestionada de prod se crea en Supabase (región EU por RGPD). Su cadena
+# de conexión se pasa por SUPABASE_DB_URL; las claves por SUPABASE_* (SSM en prod).

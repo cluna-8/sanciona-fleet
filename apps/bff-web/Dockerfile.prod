@@ -1,0 +1,61 @@
+# Imagen de PRODUCCIÓN de bff-web para AWS (EC2 + Docker). Ver ADR 0003.
+#
+# Build Nitro con preset `node-server` (configurable por NITRO_PRESET), que
+# empaqueta SSR en .output/server/index.mjs ejecutable con `node` o `bun`. Sustituye
+# al preset `cloudflare-module` del prototipo: en AWS no hay Workers de Cloudflare.
+#
+# Se construye desde la raíz del monorepo porque bff-web importa los workspaces
+# @sanciona/contracts y @sanciona/ai-provider como código TypeScript, y Vite/Nitro
+# los bundlea dentro de .output (el stage de runtime no los necesita).
+
+# ---- Stage 1: build ----
+FROM oven/bun:1.4-slim AS build
+WORKDIR /repo
+
+# Manifests primero para cachear la resolución de dependencias.
+COPY package.json bun.lock ./
+COPY packages/contracts/package.json packages/contracts/package.json
+COPY packages/ai-provider/package.json packages/ai-provider/package.json
+COPY services/deadlines-service/package.json services/deadlines-service/package.json
+COPY apps/bff-web/package.json apps/bff-web/package.json
+
+RUN bun install --frozen-lockfile
+
+# Código de los workspaces que bff-web importa en build.
+COPY packages/contracts packages/contracts
+COPY packages/ai-provider packages/ai-provider
+COPY apps/bff-web apps/bff-web
+
+WORKDIR /repo/apps/bff-web
+
+# Las VITE_* se inyectan en compile-time: deben llegar al stage de build.
+# En CI/despliegue se pasan como --build-arg (o env). Aquí se aceptan como ARG.
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_PUBLISHABLE_KEY
+ARG VITE_SUPABASE_PROJECT_ID
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
+ENV VITE_SUPABASE_PUBLISHABLE_KEY=$VITE_SUPABASE_PUBLISHABLE_KEY
+ENV VITE_SUPABASE_PROJECT_ID=$VITE_SUPABASE_PROJECT_ID
+
+ENV NITRO_PRESET=node-server
+RUN bun run build
+
+# ---- Stage 2: runtime ----
+FROM oven/bun:1.4-slim AS runtime
+WORKDIR /app
+
+# Nitro (node-server) empaqueta todo en .output: no hace falta node_modules ni
+# los paquetes workspace en runtime. Solo copiamos el bundle.
+COPY --from=build /repo/apps/bff-web/.output .output
+
+ENV NODE_ENV=production
+ENV HOST=0.0.0.0
+ENV PORT=8080
+EXPOSE 8080
+
+# Healthcheck: la app expone /health (route mínima). Si no existiera, la home
+# responde con un 3xx a /auth, que NO es .ok — por eso conviene /health real.
+HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=5 \
+  CMD bun -e "fetch('http://localhost:8080/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+
+CMD ["bun", ".output/server/index.mjs"]

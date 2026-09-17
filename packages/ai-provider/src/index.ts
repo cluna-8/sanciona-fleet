@@ -14,12 +14,19 @@ export * from "./errores";
 export * from "./tipos";
 export { SISTEMA_ANALISIS, SISTEMA_BORRADOR, SISTEMA_EXTRACCION } from "./prompts";
 export { camposCriticosDudosos } from "./normalizar";
+// Re-exportados para que apps/bff-web los consuma del paquete en la migración
+// (ADR 0003) sin duplicarlos en expediente.server.ts.
+export { extraerJson, bufferABase64 } from "./json";
+export { documentoABloque, type Bloque } from "./proveedores/base";
 
 import { ErrorIA } from "./errores";
 import { ProveedorAnthropic } from "./proveedores/anthropic";
 import { ProveedorGoogle } from "./proveedores/google";
 import { ProveedorOpenAICompatible } from "./proveedores/openai-compatible";
 import { PROVEEDORES, type ConfiguracionIA, type NombreProveedor, type ProveedorIA } from "./tipos";
+
+/** URL base por defecto para OpenRouter. */
+const URL_OPENROUTER = "https://openrouter.ai/api/v1/chat/completions";
 
 export function crearProveedor(config: ConfiguracionIA): ProveedorIA {
   switch (config.proveedor) {
@@ -30,6 +37,12 @@ export function crearProveedor(config: ConfiguracionIA): ProveedorIA {
     case "openai":
     case "openai-compatible":
       return new ProveedorOpenAICompatible(config);
+    case "openrouter":
+      // Alias de openai-compatible con urlBase por defecto OpenRouter.
+      return new ProveedorOpenAICompatible({
+        ...config,
+        ...(config.urlBase ? {} : { urlBase: URL_OPENROUTER }),
+      });
     default: {
       // Si algún día se añade un proveedor al tipo y no aquí, esto no compila.
       const _exhaustivo: never = config.proveedor;
@@ -38,14 +51,20 @@ export function crearProveedor(config: ConfiguracionIA): ProveedorIA {
   }
 }
 
-/** Variables de entorno esperadas por cada Worker que use IA. */
+/**
+ * Variables de entorno esperadas por cada servicio que use IA.
+ *
+ * Los campos aceptan `undefined` explícito para poder construirse desde
+ * `process.env` (donde toda clave ausente es `string | undefined`) incluso con
+ * `exactOptionalPropertyTypes: true` en el consumidor.
+ */
 export type EntornoIA = {
-  IA_PROVEEDOR?: string;
-  IA_API_KEY?: string;
-  IA_MODELO_EXTRACCION?: string;
-  IA_MODELO_ANALISIS?: string;
-  IA_URL_BASE?: string;
-  IA_TIMEOUT_MS?: string;
+  IA_PROVEEDOR?: string | undefined;
+  IA_API_KEY?: string | undefined;
+  IA_MODELO_EXTRACCION?: string | undefined;
+  IA_MODELO_ANALISIS?: string | undefined;
+  IA_URL_BASE?: string | undefined;
+  IA_TIMEOUT_MS?: string | undefined;
 };
 
 /**

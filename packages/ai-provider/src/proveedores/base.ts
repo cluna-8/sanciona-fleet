@@ -48,6 +48,26 @@ export abstract class ProveedorBase implements ProveedorIA {
     jsonEstricto: boolean;
   }): Promise<RespuestaCruda>;
 
+  /**
+   * Puente temporal de la migración (ADR 0003): llamada cruda al modelo.
+   * Delega en `completar`; los `bloques` llegan como `unknown` desde
+   * `expediente.server.ts` y se devuelven al tipo interno. Retirar cuando los
+   * handlers migren a `extraer/analizar/redactar`.
+   */
+  async llamar(opciones: {
+    modelo: string;
+    sistema: string;
+    bloques: ReadonlyArray<unknown>;
+    jsonEstricto?: boolean;
+  }): Promise<RespuestaCruda> {
+    return this.completar({
+      modelo: opciones.modelo,
+      sistema: opciones.sistema,
+      bloques: opciones.bloques as Bloque[],
+      jsonEstricto: opciones.jsonEstricto ?? false,
+    });
+  }
+
   /** `fetch` con timeout y traducción de fallos de red a ErrorIA. */
   protected async peticion(url: string, init: RequestInit): Promise<Response> {
     const ms = this.config.timeoutMs ?? TIMEOUT_POR_DEFECTO_MS;

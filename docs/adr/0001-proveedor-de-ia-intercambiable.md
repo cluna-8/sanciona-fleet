@@ -58,7 +58,8 @@ interfaz única `ProveedorIA` de tres métodos: `extraer()`, `analizar()` y
 
 ## Pendiente
 
-- **Contrato de encargado de tratamiento** con el proveedor que se elija: se le
-  envían documentos con datos personales de conductores (nombre, DNI). Verificar
-  además que no entrena con los datos enviados. Ver Bloque 4 de
-  `TAREAS-CRISTIAN.md`.
+- **Contrato de encargado de tratamiento (DPA)** con el proveedor que se elija
+  (por defecto **OpenRouter**, ADR 0003): se le envían documentos con datos
+  personales de conductores (nombre, DNI). Verificar además que no entrena con
+  los datos enviados y que la cláusula cubre a los modelos subyacentes de
+  terceros. Estado y acciones en `docs/compliance/README.md` §1.

@@ -54,10 +54,35 @@ export interface ProveedorIA {
 
   /** Redacta el borrador de alegaciones o recurso. Siempre lo revisa un humano. */
   redactar(peticion: PeticionRedaccion): Promise<ResultadoRedaccion>;
+
+  /**
+   * Llamada cruda al modelo con `sistema` y `bloques` arbitrarios.
+   *
+   * Puente temporal de la migración (ADR 0003): existe para que
+   * `apps/bff-web/src/lib/expediente.server.ts` pueda reemplazar el gateway de
+   * Lovable sin reescribir a la vez los handlers de extracción/análisis/borrador
+   * (que todavía hacen su propia normalización). Cuando esos tres handlers
+   * migren a `extraer()`/`analizar()`/`redactar()`, este método deja de usarse y
+   * se puede retirar de la interfaz.
+   */
+  llamar(opciones: {
+    modelo: string;
+    sistema: string;
+    bloques: ReadonlyArray<unknown>;
+    jsonEstricto?: boolean;
+  }): Promise<{ contenido: string; modelo: string }>;
 }
 
-/** Proveedores soportados. `openai-compatible` cubre OpenRouter y similares. */
-export const PROVEEDORES = ["google", "openai", "anthropic", "openai-compatible"] as const;
+/**
+ * Proveedores soportados.
+ *
+ * - `openai-compatible` cubre cualquier pasarela que hable el dialecto
+ *   `/v1/chat/completions` con una `urlBase` propia.
+ * - `openrouter` es un alias de `openai-compatible` con `urlBase` por defecto
+ *   `https://openrouter.ai/api/v1`, para que `IA_PROVEEDOR=openrouter` sea válido
+ *   sin tener que recordar `IA_URL_BASE`. (ADR 0003: proveedor de IA en producción.)
+ */
+export const PROVEEDORES = ["google", "openai", "anthropic", "openai-compatible", "openrouter"] as const;
 export type NombreProveedor = (typeof PROVEEDORES)[number];
 
 export type ConfiguracionIA = {

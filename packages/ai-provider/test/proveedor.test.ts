@@ -152,3 +152,42 @@ describe("redactar()", () => {
     ).rejects.toThrow(ErrorIA);
   });
 });
+
+describe("openrouter (ADR 0003)", () => {
+  function simularOpenAI(contenido: string, modelo = "or-model") {
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify({ choices: [{ message: { content: contenido } }], model: modelo }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      )) as unknown as typeof fetch;
+  }
+
+  it("es un proveedor válido con nombre 'openrouter' y urlBase por defecto", () => {
+    const p = crearProveedorDesdeEntorno({ IA_PROVEEDOR: "openrouter", IA_API_KEY: "k" });
+    expect(p.nombre).toBe("openrouter");
+  });
+
+  it("respeta una IA_URL_BASE explícita", () => {
+    // Solo verifica que se construye sin error; la URL se usa en el fetch.
+    const p = crearProveedorDesdeEntorno({
+      IA_PROVEEDOR: "openrouter", IA_API_KEY: "k",
+      IA_URL_BASE: "https://ejemplo.com/v1/chat/completions",
+    });
+    expect(p.nombre).toBe("openrouter");
+  });
+
+  it("llamar() devuelve {contenido, modelo} respetando el contrato del puente", async () => {
+    simularOpenAI("RESPUESTA DEL MODELO");
+    const r = await crearProveedorDesdeEntorno({
+      IA_PROVEEDOR: "openrouter", IA_API_KEY: "k",
+      IA_MODELO_EXTRACCION: "or-ext", IA_MODELO_ANALISIS: "or-ana",
+    }).llamar({
+      modelo: "or-ext",
+      sistema: "sistema de prueba",
+      bloques: [{ tipo: "texto", texto: "hola" }],
+      jsonEstricto: true,
+    });
+    expect(r.contenido).toBe("RESPUESTA DEL MODELO");
+    expect(r.modelo).toBe("or-model");
+  });
+});

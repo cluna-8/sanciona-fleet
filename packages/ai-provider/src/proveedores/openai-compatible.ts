@@ -34,7 +34,9 @@ export class ProveedorOpenAICompatible extends ProveedorBase {
   constructor(config: ConfiguracionIA) {
     super(config);
     this.url = config.urlBase ?? URL_OPENAI;
-    this.nombre = config.proveedor === "openai" ? "openai" : `openai-compatible (${new URL(this.url).host})`;
+    if (config.proveedor === "openai") this.nombre = "openai";
+    else if (config.proveedor === "openrouter") this.nombre = "openrouter";
+    else this.nombre = `openai-compatible (${new URL(this.url).host})`;
   }
 
   protected async completar(o: {

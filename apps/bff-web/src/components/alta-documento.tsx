@@ -14,8 +14,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { procesarDocumento, crearExpedienteDesdeExtraccion } from "@/lib/expediente.functions";
-import { subirDocumentoEntrada, rutaEntrada, crearRegistroExtraccion } from "@/features/extraccion";
+import {
+  procesarDocumento,
+  crearExpedienteDesdeExtraccion,
+  subirDocumentoEntrada,
+  rutaEntrada,
+  crearRegistroExtraccion,
+} from "@/features/extraccion";
 import { useVehiculos, useConductores } from "@/features/flota";
 import { useSesion } from "@/hooks/use-org";
 import { ETIQUETAS_CAMPO, ORDEN_CAMPOS, esCampoCritico } from "@/lib/analisis";

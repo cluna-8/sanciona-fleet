@@ -1,6 +1,6 @@
 /** Único módulo que conoce Supabase para sanction_analyses. La generación del
- * análisis en sí es un server fn (lib/expediente.functions.ts) que llama a
- * @sanciona/ai-provider — SPEC.md §7.1 (analysis-service). */
+ * análisis en sí es un server fn (features/analisis/api/analizarExpediente.ts)
+ * que llama a @sanciona/ai-provider — SPEC.md §7.1 (analysis-service). */
 import { supabase } from "@/integrations/supabase/client";
 
 export type Analisis = {

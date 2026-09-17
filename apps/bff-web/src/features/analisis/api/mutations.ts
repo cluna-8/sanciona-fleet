@@ -1,7 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { analizarExpediente, generarBorrador, recalcularPlazos } from "@/lib/expediente.functions";
+import { analizarExpediente } from "./analizarExpediente";
+import { generarBorrador } from "@/features/borradores";
+import { recalcularPlazos } from "@/features/plazos";
 import { revisarAnalisis, type CambiosRevision, type Analisis } from "./client";
 
 /**

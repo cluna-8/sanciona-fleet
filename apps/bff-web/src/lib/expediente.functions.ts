@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { EntradaPlazos } from "@/lib/plazos";
 import { calcularPlazosRemoto } from "@/lib/deadlines-client.server";
-import { parseImporte } from "@/lib/fleet";
+import { parseImporte } from "@/shared/lib/formato";
 import {
   SISTEMA_ANALISIS,
   SISTEMA_BORRADOR,

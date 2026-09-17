@@ -1,12 +1,13 @@
 import { useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Download } from "lucide-react";
-import { AppShell } from "@/components/app-shell";
+import { AppShell } from "@/shared/components/AppShell";
 import { useSesion } from "@/hooks/use-org";
 import { useSanciones, type Sancion } from "@/features/expedientes";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ESTADOS_ABIERTOS, formatoImporte } from "@/lib/fleet";
+import { ESTADOS_ABIERTOS } from "@sanciona/contracts";
+import { formatoImporte } from "@/shared/lib/formato";
 
 export const Route = createFileRoute("/_authenticated/informes")({
   component: Informes,

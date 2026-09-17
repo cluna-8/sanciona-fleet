@@ -8,14 +8,17 @@ import {
   Plus,
   ArrowUpRight,
 } from "lucide-react";
-import { AppShell } from "@/components/app-shell";
-import { EtiquetaEstado, EtiquetaPrioridad, EtiquetaPlazo } from "@/components/etiquetas";
+import { AppShell } from "@/shared/components/AppShell";
+import { EtiquetaEstado } from "@/shared/components/EtiquetaEstado";
+import { EtiquetaPrioridad } from "@/shared/components/EtiquetaPrioridad";
+import { EtiquetaPlazo } from "@/shared/components/EtiquetaPlazo";
 import { useSesion } from "@/hooks/use-org";
 import { useSanciones, type Sancion } from "@/features/expedientes";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TarjetaKpi } from "@/shared/components/TarjetaKpi";
-import { ESTADOS_ABIERTOS, formatoImporte, diasRestantes } from "@/lib/fleet";
+import { ESTADOS_ABIERTOS } from "@sanciona/contracts";
+import { formatoImporte, diasRestantes } from "@/shared/lib/formato";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,

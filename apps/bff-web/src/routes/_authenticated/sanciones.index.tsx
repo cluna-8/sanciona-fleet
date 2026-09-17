@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Plus, Filter, X } from "lucide-react";
-import { AppShell } from "@/components/app-shell";
-import { EtiquetaEstado, EtiquetaPrioridad, EtiquetaPlazo } from "@/components/etiquetas";
+import { AppShell } from "@/shared/components/AppShell";
+import { EtiquetaEstado } from "@/shared/components/EtiquetaEstado";
+import { EtiquetaPrioridad } from "@/shared/components/EtiquetaPrioridad";
+import { EtiquetaPlazo } from "@/shared/components/EtiquetaPlazo";
 import { useSesion } from "@/hooks/use-org";
 import { useSanciones, type Sancion } from "@/features/expedientes";
 import { useVehiculos, useConductores } from "@/features/flota";
@@ -17,7 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ESTADOS_SANCION, PRIORIDADES, CATEGORIAS, formatoImporte } from "@/lib/fleet";
+import { ESTADOS_SANCION, PRIORIDADES, CATEGORIAS } from "@sanciona/contracts";
+import { formatoImporte } from "@/shared/lib/formato";
 
 export const Route = createFileRoute("/_authenticated/sanciones/")({
   component: ListadoSanciones,

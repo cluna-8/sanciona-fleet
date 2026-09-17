@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { BellRing, Check } from "lucide-react";
 import { toast } from "sonner";
-import { AppShell } from "@/components/app-shell";
+import { AppShell } from "@/shared/components/AppShell";
 import { useSesion } from "@/hooks/use-org";
 import { useAvisos, useMarcarAvisosLeidos } from "@/features/avisos";
 import { Button } from "@/components/ui/button";

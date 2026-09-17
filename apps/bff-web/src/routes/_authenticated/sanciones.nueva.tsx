@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { AppShell } from "@/components/app-shell";
+import { AppShell } from "@/shared/components/AppShell";
 import { AltaDesdeDocumento } from "@/components/alta-documento";
 import { useSesion } from "@/hooks/use-org";
 import { useVehiculos, useConductores } from "@/features/flota";
@@ -19,7 +19,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ESTADOS_SANCION, PRIORIDADES, CATEGORIAS, ORGANISMOS, TIPOS_DOCUMENTO } from "@/lib/fleet";
+import {
+  ESTADOS_SANCION,
+  PRIORIDADES,
+  CATEGORIAS,
+  ORGANISMOS,
+  TIPOS_DOCUMENTO,
+} from "@sanciona/contracts";
 
 export const Route = createFileRoute("/_authenticated/sanciones/nueva")({
   component: NuevaSancion,

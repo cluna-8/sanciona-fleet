@@ -1,4 +1,4 @@
-import { parseImporte } from "@/lib/fleet";
+import { parseImporte } from "@/shared/lib/formato";
 /** Validación y normalización de los datos extraídos antes de crear el expediente. */
 
 export const OPCIONES_IDENTIFICACION = ["Sí", "No", "Pendiente de confirmar"] as const;

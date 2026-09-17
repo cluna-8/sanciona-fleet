@@ -27,7 +27,7 @@ import {
   type Semaforo,
 } from "@/lib/analisis";
 import { CLASES_ESTADO_PLAZO, type EstadoPlazo } from "@/lib/plazos";
-import { formatoFecha } from "@/lib/fleet";
+import { formatoFecha } from "@/shared/lib/formato";
 
 type Props = {
   sanctionId: string;

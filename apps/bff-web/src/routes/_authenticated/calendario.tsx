@@ -1,13 +1,13 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, CalendarClock } from "lucide-react";
-import { AppShell } from "@/components/app-shell";
-import { EtiquetaEstado } from "@/components/etiquetas";
+import { AppShell } from "@/shared/components/AppShell";
+import { EtiquetaEstado } from "@/shared/components/EtiquetaEstado";
 import { useSesion } from "@/hooks/use-org";
 import { useSanciones, type Sancion } from "@/features/expedientes";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatoImporte, formatoFecha, nivelPlazo, CLASES_ALERTA } from "@/lib/fleet";
+import { formatoImporte, formatoFecha, nivelPlazo, CLASES_ALERTA } from "@/shared/lib/formato";
 
 export const Route = createFileRoute("/_authenticated/calendario")({
   component: Calendario,

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Plus, Truck, Loader2, Pencil } from "lucide-react";
 import { toast } from "sonner";
-import { AppShell } from "@/components/app-shell";
+import { AppShell } from "@/shared/components/AppShell";
 import { useSesion, puedeGestionar } from "@/hooks/use-org";
 import { useSanciones } from "@/features/expedientes";
 import {
@@ -32,7 +32,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { TIPOS_VEHICULO, formatoImporte, formatoFecha } from "@/lib/fleet";
+import { TIPOS_VEHICULO } from "@sanciona/contracts";
+import { formatoImporte, formatoFecha } from "@/shared/lib/formato";
 
 export const Route = createFileRoute("/_authenticated/vehiculos/")({
   component: Vehiculos,

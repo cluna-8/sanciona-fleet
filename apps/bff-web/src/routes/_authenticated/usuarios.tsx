@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { UserCog, UserPlus, Loader2, Trash2 } from "lucide-react";
-import { AppShell } from "@/components/app-shell";
+import { AppShell } from "@/shared/components/AppShell";
 import {
   useSesion,
   esAdministrador,
@@ -34,7 +34,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ROLES, etiquetaRol, formatoFecha } from "@/lib/fleet";
+import { ROLES } from "@sanciona/contracts";
+import { etiquetaRol, formatoFecha } from "@/shared/lib/formato";
 
 export const Route = createFileRoute("/_authenticated/usuarios")({
   component: Usuarios,

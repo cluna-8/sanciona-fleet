@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Plus, Loader2, Pencil } from "lucide-react";
 import { toast } from "sonner";
-import { AppShell } from "@/components/app-shell";
+import { AppShell } from "@/shared/components/AppShell";
 import { useSesion, puedeGestionar } from "@/hooks/use-org";
 import {
   useConductores,
@@ -32,7 +32,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { formatoImporte } from "@/lib/fleet";
+import { formatoImporte } from "@/shared/lib/formato";
 
 export const Route = createFileRoute("/_authenticated/conductores/")({
   component: Conductores,

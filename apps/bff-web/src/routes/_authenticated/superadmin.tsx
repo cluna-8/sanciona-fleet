@@ -2,10 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Building2, Users, FileWarning, Euro, Truck, ShieldCheck } from "lucide-react";
-import { AppShell } from "@/components/app-shell";
+import { AppShell } from "@/shared/components/AppShell";
 import { Skeleton } from "@/components/ui/skeleton";
 import { obtenerVisionGlobal } from "@/lib/superadmin.functions";
-import { formatoImporte } from "@/lib/fleet";
+import { formatoImporte } from "@/shared/lib/formato";
 
 export const Route = createFileRoute("/_authenticated/superadmin")({
   head: () => ({

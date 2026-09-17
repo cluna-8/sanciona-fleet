@@ -19,7 +19,7 @@ import { subirDocumentoEntrada, rutaEntrada, crearRegistroExtraccion } from "@/f
 import { useVehiculos, useConductores } from "@/features/flota";
 import { useSesion } from "@/hooks/use-org";
 import { ETIQUETAS_CAMPO, ORDEN_CAMPOS, esCampoCritico } from "@/lib/analisis";
-import { TIPOS_DOCUMENTO } from "@/lib/fleet";
+import { TIPOS_DOCUMENTO } from "@sanciona/contracts";
 import {
   CATEGORIAS_INFRACCION,
   CATEGORIA_POR_TIPO,

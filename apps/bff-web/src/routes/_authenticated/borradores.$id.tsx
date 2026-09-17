@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { ArrowLeft, Download, FileText, Loader2, Printer, Save } from "lucide-react";
 import { toast } from "sonner";
-import { AppShell } from "@/components/app-shell";
+import { AppShell } from "@/shared/components/AppShell";
 import { useSesion, puedeGestionar } from "@/hooks/use-org";
 import {
   useBorrador,
@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CLASES_ESTADO_BORRADOR, ESTADOS_BORRADOR } from "@/lib/analisis";
-import { formatoFecha } from "@/lib/fleet";
+import { formatoFecha } from "@/shared/lib/formato";
 import { documentoHtml } from "@/lib/documento";
 
 export const Route = createFileRoute("/_authenticated/borradores/$id")({

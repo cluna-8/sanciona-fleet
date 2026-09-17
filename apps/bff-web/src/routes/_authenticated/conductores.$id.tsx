@@ -1,13 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
-import { AppShell } from "@/components/app-shell";
-import { EtiquetaEstado, EtiquetaPrioridad, EtiquetaPlazo } from "@/components/etiquetas";
+import { AppShell } from "@/shared/components/AppShell";
+import { EtiquetaEstado } from "@/shared/components/EtiquetaEstado";
+import { EtiquetaPrioridad } from "@/shared/components/EtiquetaPrioridad";
+import { EtiquetaPlazo } from "@/shared/components/EtiquetaPlazo";
 import { useSesion } from "@/hooks/use-org";
 import { useConductores } from "@/features/flota";
 import { useSanciones } from "@/features/expedientes";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatoImporte, formatoFecha } from "@/lib/fleet";
+import { formatoImporte, formatoFecha } from "@/shared/lib/formato";
 
 export const Route = createFileRoute("/_authenticated/conductores/$id")({
   component: FichaConductor,

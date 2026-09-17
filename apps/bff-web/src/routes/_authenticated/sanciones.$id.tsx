@@ -11,8 +11,10 @@ import {
   User,
 } from "lucide-react";
 import { toast } from "sonner";
-import { AppShell } from "@/components/app-shell";
-import { EtiquetaEstado, EtiquetaPrioridad, EtiquetaPlazo } from "@/components/etiquetas";
+import { AppShell } from "@/shared/components/AppShell";
+import { EtiquetaEstado } from "@/shared/components/EtiquetaEstado";
+import { EtiquetaPrioridad } from "@/shared/components/EtiquetaPrioridad";
+import { EtiquetaPlazo } from "@/shared/components/EtiquetaPlazo";
 import { useSesion, puedeGestionar } from "@/hooks/use-org";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -36,7 +38,8 @@ import { useDocumentosSancion, enlaceDescarga, type DocumentoSancion } from "@/f
 import { PanelAnalisis } from "@/components/panel-analisis";
 import { useExtraccion } from "@/hooks/use-expediente";
 import { ETIQUETAS_CAMPO, valorTexto } from "@/lib/analisis";
-import { ESTADOS_SANCION, formatoImporte, formatoFecha } from "@/lib/fleet";
+import { ESTADOS_SANCION } from "@sanciona/contracts";
+import { formatoImporte, formatoFecha } from "@/shared/lib/formato";
 
 export const Route = createFileRoute("/_authenticated/sanciones/$id")({
   component: FichaSancion,

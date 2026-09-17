@@ -17,10 +17,13 @@ obligatoria**.
 |---|---|
 | [`SPEC.md`](SPEC.md) | **Fuente de verdad.** Qué debe hacer el sistema. El código se revisa contra él |
 | [`TAREAS-CRISTIAN.md`](TAREAS-CRISTIAN.md) | Decisiones y gestiones humanas pendientes |
-| [`docs/adr/`](docs/adr/) | Decisiones de arquitectura y su porqué |
+| [`docs/adr/`](docs/adr/) | Decisiones de arquitectura y su porqué (0003 = despliegue AWS) |
+| [`docs/compliance/README.md`](docs/compliance/README.md) | RGPD, DPAs, validación jurídica del motor de plazos |
 | [`docs/legacy/INVENTARIO-AS-IS.md`](docs/legacy/INVENTARIO-AS-IS.md) | Diagnóstico del prototipo de Lovable del que nace todo |
 | [`docs/spec/06-arquitectura-bff-web.md`](docs/spec/06-arquitectura-bff-web.md) | Qué hace el frontend y cómo está construido por dentro |
-| [`docs/deploy/ELEA-RUNBOOK.md`](docs/deploy/ELEA-RUNBOOK.md) | Cómo levantar el stack local y qué falta para llevarlo a un servidor |
+| [`infra/README.md`](infra/README.md) | Infra como código: Terraform AWS + Cloudflare + Caddy |
+| [`docs/deploy/AWS-RUNBOOK.md`](docs/deploy/AWS-RUNBOOK.md) | Cómo llevar el stack a producción en AWS |
+| [`docs/deploy/CI-CD.md`](docs/deploy/CI-CD.md) · [`DNS-TLS.md`](docs/deploy/DNS-TLS.md) · [`DATABASE.md`](docs/deploy/DATABASE.md) | CI/CD, dominio/TLS y base de datos |
 
 ## Estructura
 
@@ -30,7 +33,11 @@ apps/bff-web              Frontend en desarrollo activo (TanStack Start). Nace
 packages/contracts        Tipos compartidos entre servicios. Un cambio de forma
                           es un error de compilación, no un bug en producción
 packages/ai-provider      Interfaz única de IA, con proveedor intercambiable
-services/deadlines-service   Motor de plazos determinista (Worker)
+                          (Google/OpenAI/Anthropic/OpenRouter; por defecto OpenRouter)
+services/deadlines-service   Motor de plazos determinista (Bun HTTP en prod)
+infra/                    Infra como código: Terraform AWS (EC2+ECR+SSM+OIDC) +
+                          Cloudflare (DNS/TLS) + Caddy
+scripts/                  db/migrar.ts, deploy-remote.sh, inject-secrets.sh
 multas-export/            Espejo de solo lectura del export de Lovable. No se
                           edita ni se despliega — ver docs/legacy/CAMBIOS-LOVABLE.md
 ```
@@ -71,7 +78,7 @@ docker compose up -d --build
 | `deadlines-service` | Funcional, 16 tests. **Pendiente de validación jurídica** |
 | `ai-provider` | Funcional, 31 tests |
 | Resto de servicios | No empezados — sus features ya están aisladas en `apps/bff-web` para extraerlas (ver `docs/spec/06-arquitectura-bff-web.md`) |
-| Despliegue | Local con Docker, verificado. Producción: sin configurar — ver `docs/deploy/ELEA-RUNBOOK.md` |
+| Despliegue | Local con Docker, verificado. **Prod: AWS EC2 + Caddy + Cloudflare + OpenRouter** (ADR 0003). Infra y CI/CD listos; falta aplicar (credenciales). Ver `docs/deploy/AWS-RUNBOOK.md` |
 
 ## Licencia
 

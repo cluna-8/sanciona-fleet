@@ -380,6 +380,12 @@ proveedor de IA sin tocar los tres servicios (cubre RF-ANALISIS-4).
 
 ### 7.2 Comunicación entre servicios
 
+> **Matización (ADR 0003):** el substrate v1 es AWS EC2 + Docker, no Cloudflare
+> Workers. Lo que sigue es el **destino** de microservicios; en v1, el RPC
+> directo es **HTTP interno** entre contenedores en la red de Docker y los
+> eventos asíncronos quedan para una fase posterior. Replantear el mecanismo
+> concreto en un ADR futuro si se desea event-driven.
+
 - **Cloudflare Workers con bindings de servicio (RPC directo)** para llamadas
   síncronas del `bff-web` a cada servicio — sin pasar por HTTP público, ya que
   todos corren en la misma cuenta de Cloudflare. Es el patrón de menor fricción
@@ -418,9 +424,18 @@ sobre-ingeniería en v1**. Se recomienda:
 - **Monorepo** (Bun workspaces) dentro de la GitHub Organization compartida:
   `apps/bff-web`, `services/identity-service`, `services/fleet-service`, …,
   `packages/contracts`, `packages/ai-provider`.
-- Cada servicio es un **Worker de Cloudflare independiente**, con su propio
-  `wrangler.jsonc`, pipeline de CI y versión — se despliega solo, sin redeployar
-  el resto.
+- **Substrate v1: AWS EC2 + Docker + Caddy** (ADR 0003). Cada servicio es un
+  **contenedor independiente** con su propio `Dockerfile`, pipeline de CI y
+  versión — se despliega solo, sin redeployar el resto. Las imágenes viven en
+  **ECR** (una por servicio, scan on push); los secretos en **SSM Parameter
+  Store**; el despliegue se dispara por **SSM Run Command** desde GitHub Actions
+  vía **AWS OIDC** (sin claves estáticas). DNS y TLS edge en **Cloudflare**
+  (registro A proxied a la EIP, TLS Full strict); Caddy en la EC2 termina TLS
+  al origen. Todo como código en `infra/aws` y `infra/cloudflare` (Terraform).
+- El destino sigue siendo **microservicios** (§7.1): la EC2 es el substrate
+  físico común; la comunicación entre servicios es HTTP en la red de Docker.
+  La salida a múltiples EC2 + ALB, y a eventos asíncronos, queda como **opción
+  v2** (replantear el mecanismo de §7.2 en un ADR futuro).
 - `deadlines-service`, por ser lógica pura, lleva su **propia suite de tests
   unitarios exhaustiva** (hoy el proyecto no tiene ningún test, §8.4 #34) y
   changelog propio, dado que cualquier cambio ahí tiene consecuencia legal

@@ -166,12 +166,12 @@ docker compose up -d --build
 # deadlines     http://localhost:8787
 ```
 
-Ver `docker-compose.yml` y `docs/deploy/ELEA-RUNBOOK.md` para el detalle de
-por qué los `Dockerfile` de este stack son de **prueba local**, no de
-despliegue a producción (`wrangler dev` no completa el handshake HTTP dentro
-del Docker anidado del entorno donde se desarrolló esto; el shim de
-`services/deadlines-service/src/local-dev-server.ts` reutiliza exactamente la
-misma lógica sobre Bun para poder verificarlo igualmente).
+Ver `docker-compose.yml` (prueba local) y `docker-compose.prod.yml` (prod, con
+`Dockerfile.prod`) para el detalle. El `Dockerfile.dev` de este stack es de
+**prueba local** (vite dev), no de despliegue a producción; en prod, bff-web
+usa el build Nitro `node-server` (`Dockerfile.prod`) y deadlines-service corre
+su runtime Bun HTTP (`local-dev-server.ts`, reutiliza la misma lógica que el
+Worker) — ver ADR 0003 y `docs/deploy/AWS-RUNBOOK.md`.
 
 ---
 

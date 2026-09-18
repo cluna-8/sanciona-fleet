@@ -21,7 +21,7 @@ export DEBIAN_FRONTEND=noninteractive
 
 # --- Docker + compose ---
 apt-get update -y
-apt-get install -y ca-certificates curl gnupg git awscli caddy
+apt-get install -y ca-certificates curl gnupg git awscli
 install -m 0755 -d /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 chmod a+r /etc/apt/keyrings/docker.gpg
@@ -31,6 +31,15 @@ apt-get update -y
 apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 systemctl enable --now docker
 usermod -aG docker ubuntu
+
+# --- Caddy (repo oficial cloudsmith; no esta en los repos apt por defecto) ---
+apt-get install -y debian-keyring debian-archive-keyring apt-transport-https curl
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' \
+  | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' \
+  | tee /etc/apt/sources.list.d/caddy-stable.list >/dev/null
+apt-get update -y
+apt-get install -y caddy
 
 # --- Repo (solo para tener docker-compose.prod.yml, Caddyfile y scripts) ---
 mkdir -p "$APP_DIR"

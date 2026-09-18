@@ -6,11 +6,16 @@
 # despliegue (ver scripts/inject-secrets.sh y docs/deploy/AWS-RUNBOOK.md).
 set -euo pipefail
 
+# OJO: este archivo se procesa con terraform templatefile. Solo las cuatro
+# asignaciones de abajo (project_name, environment, repo_url, domain_name,
+# en minusculas) son interpolaciones de Terraform. TODO lo demas debe usar
+# $VAR sin llaves: las llaves con mayusculas colisionarian con templatefile
+# y romperian plan.
 PROJECT_NAME="${project_name}"
 ENVIRONMENT="${environment}"
 REPO_URL="${repo_url}"
 DOMAIN="${domain_name}"
-APP_DIR="/opt/${PROJECT_NAME}"
+APP_DIR="/opt/$PROJECT_NAME"
 
 export DEBIAN_FRONTEND=noninteractive
 
@@ -28,18 +33,18 @@ systemctl enable --now docker
 usermod -aG docker ubuntu
 
 # --- Repo (solo para tener docker-compose.prod.yml, Caddyfile y scripts) ---
-mkdir -p "${APP_DIR}"
-if [ ! -d "${APP_DIR}/.git" ]; then
-  git clone "${REPO_URL}" "${APP_DIR}"
+mkdir -p "$APP_DIR"
+if [ ! -d "$APP_DIR/.git" ]; then
+  git clone "$REPO_URL" "$APP_DIR"
 else
-  (cd "${APP_DIR}" && git pull --ff-only)
+  (cd "$APP_DIR" && git pull --ff-only)
 fi
 
 # --- Caddy: reverse proxy + TLS automático (Let's Encrypt) ---
 # El Caddyfile lo gestiona el repo (infra/caddy/Caddyfile). Se copia en cada
 # deploy con scripts/reload-caddy.sh.
-cp "${APP_DIR}/infra/caddy/Caddyfile" /etc/caddy/Caddyfile
-sed -i "s/__DOMAIN__/${DOMAIN}/g" /etc/caddy/Caddyfile
+cp "$APP_DIR/infra/caddy/Caddyfile" /etc/caddy/Caddyfile
+sed -i "s/__DOMAIN__/$DOMAIN/g" /etc/caddy/Caddyfile
 systemctl enable --now caddy
 systemctl reload caddy || true
 

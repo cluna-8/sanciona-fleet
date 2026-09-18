@@ -3,7 +3,7 @@
 
 resource "aws_security_group" "web" {
   name        = "${var.project_name}-${var.environment}-web"
-  description = "HTTP/HTTPS para Caddy (terminación TLS)"
+  description = "HTTP/HTTPS for Caddy reverse proxy (TLS termination)"
   vpc_id      = aws_vpc.main.id
 
   ingress {

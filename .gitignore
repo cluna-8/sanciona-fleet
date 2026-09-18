@@ -7,6 +7,19 @@ dist/
 .env.local
 .DS_Store
 
+# Credenciales de infra para Terraform (Cloudflare + AWS). NUNCA commitear.
+infra/secrets.env
+infra/.env
+
+# Terraform: state local y plugins NUNCA se commitean (contiene secretos/EIPs).
+# .terraform.lock.hcl SI se commitea (lock de providers, reproducible).
+*.tfstate
+*.tfstate.*
+.terraform/
+crash*.log
+*.tfvars
+!*.tfvars.example
+
 # Artefacto de la exportacion original de Lovable (no es codigo del proyecto)
 *.zip
 

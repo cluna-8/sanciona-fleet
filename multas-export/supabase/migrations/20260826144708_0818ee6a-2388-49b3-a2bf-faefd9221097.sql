@@ -1,8 +1,9 @@
--- 1) Asignar las cuentas existentes a la empresa demo como administradoras
+-- 1) [RS-3] Espejo de Lovable: los emails personales reales que aquí figuraban
+--    se redactan antes de publicar el repo. Lógica original conservada.
 INSERT INTO public.organization_members (organization_id, user_id, role, status)
 SELECT '11111111-1111-4111-8111-111111111111'::uuid, u.id, 'admin_empresa'::app_role, 'activo'::member_status
 FROM auth.users u
-WHERE u.email IN ('jorgelinares10@gmail.com','jorgelinarescunat@gmail.com')
+WHERE u.email IN ('<cuenta-personal-1@redactado>','<cuenta-personal-2@redactado>')
 ON CONFLICT (organization_id, user_id)
 DO UPDATE SET role = 'admin_empresa'::app_role, status = 'activo'::member_status;
 

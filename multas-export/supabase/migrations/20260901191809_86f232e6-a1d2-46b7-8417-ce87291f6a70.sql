@@ -21,7 +21,10 @@ AS $$ SELECT EXISTS (SELECT 1 FROM public.platform_admins p WHERE p.user_id = au
 REVOKE EXECUTE ON FUNCTION public.is_platform_admin() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.is_platform_admin() TO authenticated, service_role;
 
+-- [RS-3] Espejo de Lovable: los user_id personales fijos se redactan antes
+-- de publicar el repo. En apps/bff-web este INSERT se eliminó y los
+-- superadmins se gestionan con scripts/db/crear-superadmin.sql.
 INSERT INTO public.platform_admins (user_id) VALUES
-  ('dc8d2a68-6fcd-4764-9d7d-7caa74d2afc1'),
-  ('03f2ecbd-9b6d-4557-9b28-c968baa429af')
+  ('<uuid-personal-1-redactado>'),
+  ('<uuid-personal-2-redactado>')
 ON CONFLICT DO NOTHING;

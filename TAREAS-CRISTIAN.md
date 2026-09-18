@@ -7,11 +7,14 @@ Marcado por bloques de prioridad. Actualizado: 7 sep 2026.
 
 ## 🔴 BLOQUE 0 — Ahora mismo (seguridad y permiso)
 
-- [ ] **Cambiar la contraseña de `jorgelinares10@gmail.com`.** Está fijada a
-      `12345678` por la migración `20260903190210` y es válida hoy en producción
-      (`sanciona.lovable.app`). Hazlo desde la app o desde Supabase Auth.
-- [ ] **Revisar la otra cuenta** `jorgelinarescunat@gmail.com`, que también quedó
-      como administradora por email literal en `20260826144708`.
+- [ ] **Cambiar la contraseña de la cuenta admin fijada por la migración
+      `20260903190210`** (email concreto en Supabase Auth / gestor de
+      contraseñas; se quitó del repo por RS-3). Esa contraseña en claro quedó
+      obsoleta en el esquema propio y además era débil; rotarla desde la app o
+      desde Supabase Auth antes de cualquier despliegue real.
+- [ ] **Revisar la otra cuenta admin** que quedó como administradora por email
+      literal en `20260826144708` (mismo email en Supabase Auth; quitado del
+      repo por RS-3).
 - [x] **Propiedad resuelta: Cristian y Jorge son socios.** No se reconstruye bajo
       la cuenta personal de ninguno de los dos — todo se crea en cuentas de
       **organización compartida** (GitHub Org, Supabase Org, Cloudflare, dominio),

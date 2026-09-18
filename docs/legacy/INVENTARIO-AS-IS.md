@@ -599,15 +599,17 @@ relevante para la especificación formal.
 ### 8.1 🔴 Riesgos de seguridad
 
 1. **Contraseña en texto plano dentro de una migración.**
-   `supabase/migrations/20260903190210_*.sql` ejecuta un `UPDATE auth.users` que fija la
-   contraseña de `jorgelinares10@gmail.com` a **`12345678`**, confirma su email y le
-   levanta cualquier bloqueo. Queda registrado de forma permanente en el historial de
-   migraciones y se re-aplicaría en cualquier entorno nuevo. **Esa contraseña debe
-   cambiarse y la migración neutralizarse antes de subir el código a ningún repositorio.**
+   `supabase/migrations/20260903190210_*.sql` ejecutaba un `UPDATE auth.users` que fijaba
+   la contraseña de una cuenta personal concreta a un valor débil en claro, confirmaba su
+   email y le levantaba cualquier bloqueo. Quedaba registrado de forma permanente en el
+   historial de migraciones y se re-aplicaría en cualquier entorno nuevo. **RESUELTO (RS-3):
+   la migración se neutralizó y el valor/email se quitó del repo antes de publicarlo. La
+   cuenta original debe rotar su contraseña desde Supabase Auth.**
 
 2. **Emails personales hardcodeados en migraciones.**
-   `20260826144708_*.sql` da de alta como administradores a `jorgelinares10@gmail.com` y
-   `jorgelinarescunat@gmail.com` por email literal.
+   `20260826144708_*.sql` daba de alta como administradores a dos cuentas personales por
+   email literal. **RESUELTO (RS-3): el INSERT se eliminó; la membresía se gestiona por la
+   app, no por email hardcodeado.**
 
 3. **UUIDs de superadministrador hardcodeados.**
    `20260901191809_*.sql` inserta dos UUID fijos en `platform_admins`

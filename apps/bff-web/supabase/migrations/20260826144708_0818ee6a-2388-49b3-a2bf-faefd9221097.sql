@@ -1,10 +1,8 @@
--- 1) Asignar las cuentas existentes a la empresa demo como administradoras
-INSERT INTO public.organization_members (organization_id, user_id, role, status)
-SELECT '11111111-1111-4111-8111-111111111111'::uuid, u.id, 'admin_empresa'::app_role, 'activo'::member_status
-FROM auth.users u
-WHERE u.email IN ('jorgelinares10@gmail.com','jorgelinarescunat@gmail.com')
-ON CONFLICT (organization_id, user_id)
-DO UPDATE SET role = 'admin_empresa'::app_role, status = 'activo'::member_status;
+-- 1) [RS-3] Eliminado el INSERT que asignaba cuentas personales reales
+--    como admin_empresa de la org demo. Esos emails y esa asignación no
+--    deben vivir en una migración versionada: la membresía se gestiona por
+--    la app, no hardcodeada por email. El rol inicial de quien entra a la
+--    demo lo decide ensure_active_organization().
 
 -- 2) Función de arranque: garantiza que el usuario autenticado tenga una empresa activa
 CREATE OR REPLACE FUNCTION public.ensure_active_organization()

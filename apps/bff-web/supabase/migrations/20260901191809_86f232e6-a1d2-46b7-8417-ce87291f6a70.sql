@@ -21,7 +21,8 @@ AS $$ SELECT EXISTS (SELECT 1 FROM public.platform_admins p WHERE p.user_id = au
 REVOKE EXECUTE ON FUNCTION public.is_platform_admin() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.is_platform_admin() TO authenticated, service_role;
 
-INSERT INTO public.platform_admins (user_id) VALUES
-  ('dc8d2a68-6fcd-4764-9d7d-7caa74d2afc1'),
-  ('03f2ecbd-9b6d-4557-9b28-c968baa429af')
-ON CONFLICT DO NOTHING;
+-- [RS-3] Eliminado el INSERT de user_id fijos (UUIDs personales de cuentas
+-- reales del proyecto Lovable). En un Supabase nuevo esos user_id no existen
+-- y la FK a auth.users rompería la migración. Los superadministradores de
+-- plataforma se gestionan con el script parametrizado
+-- scripts/db/crear-superadmin.sql (exec por service_role), no desde aquí.

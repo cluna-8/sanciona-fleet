@@ -39,23 +39,17 @@ variable "ec2_public_ip" {
   type        = string
 }
 
-# Registro A apuntando a la EC2, con proxy de Cloudflare (orange cloud) activo.
+# Registro A apuntando a la EC2. DNS-only (proxied=false): el token de
+# Cloudflare tiene solo permisos Zone:DNS:Edit (no Zone:Settings), asi que no
+# se gestiona el modo TLS desde aqui. Caddy termina TLS en el origen con
+# Let's Encrypt (puerto 80 abierto). Para activar el proxy naranja de CF hace
+# falta ampliar el token a Zone:Settings:Edit y volver a anadir el recurso
+# cloudflare_zone_settings_override (modo Full strict).
 resource "cloudflare_record" "app" {
   zone_id = var.cloudflare_zone_id
   name    = var.domain_name
   value   = var.ec2_public_ip
   type    = "A"
-  proxied = true
+  proxied = false
   comment = "Sanciona Fleet — bff-web (ADR 0003). Gestionado por Terraform."
-}
-
-# TLS: modo Full (strict) entre Cloudflare y el origen (Caddy con Let's Encrypt).
-resource "cloudflare_zone_settings_override" "tls" {
-  zone_id = var.cloudflare_zone_id
-  settings {
-    ssl_mode           = "full"
-    always_use_https   = true
-    min_tls_version    = "1.2"
-    tls_1_3            = "on"
-  }
 }

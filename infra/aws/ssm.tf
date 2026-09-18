@@ -6,22 +6,25 @@
 # genera a partir de estos parámetros (ver scripts/inject-secrets.sh).
 
 locals {
-  # Lista de parámetros de configuración (texto plano).
+  # Lista de parámetros de configuración (texto plano). Los valores que aquí
+  # figuran como PENDIENTE-RELLENAR reservan el nombre del parámetro; el valor
+  # real se escribe después con scripts/inject-secrets.sh (SSM rechaza valores
+  # vacíos, por eso no se usa "").
   params = {
-    SUPABASE_URL             = ""
-    SUPABASE_PUBLISHABLE_KEY = ""
-    VITE_SUPABASE_URL        = ""
-    VITE_SUPABASE_PUBLISHABLE_KEY = ""
-    VITE_SUPABASE_PROJECT_ID = ""
-    IA_PROVEEDOR             = "openrouter"
-    IA_URL_BASE              = "https://openrouter.ai/api/v1/chat/completions"
-    IA_MODELO_EXTRACCION     = ""
-    IA_MODELO_ANALISIS        = ""
-    IA_TIMEOUT_MS            = "120000"
-    DEADLINES_SERVICE_URL    = "http://deadlines-service:8787"
-    RESEND_API_KEY           = ""
-    EMAIL_FROM               = ""
-    PUBLIC_SITE_URL          = "https://${var.domain_name}"
+    SUPABASE_URL                  = "PENDIENTE-RELLENAR"
+    SUPABASE_PUBLISHABLE_KEY      = "PENDIENTE-RELLENAR"
+    VITE_SUPABASE_URL             = "PENDIENTE-RELLENAR"
+    VITE_SUPABASE_PUBLISHABLE_KEY = "PENDIENTE-RELLENAR"
+    VITE_SUPABASE_PROJECT_ID      = "PENDIENTE-RELLENAR"
+    IA_PROVEEDOR                  = "openrouter"
+    IA_URL_BASE                   = "https://openrouter.ai/api/v1/chat/completions"
+    IA_MODELO_EXTRACCION          = "PENDIENTE-RELLENAR"
+    IA_MODELO_ANALISIS            = "PENDIENTE-RELLENAR"
+    IA_TIMEOUT_MS                 = "120000"
+    DEADLINES_SERVICE_URL         = "http://deadlines-service:8787"
+    RESEND_API_KEY                = "PENDIENTE-RELLENAR"
+    EMAIL_FROM                    = "PENDIENTE-RELLENAR"
+    PUBLIC_SITE_URL               = "https://${var.domain_name}"
   }
 
   # Parámetros secretos (SecureString). Valor vacío: rellenar a mano.

@@ -72,3 +72,54 @@ service role key al cliente.
 2. Testear en local (`supabase start` + `bun run db:migrar`).
 3. Commitear. Al mergear a `main`, CI podría aplicarla (job `migrate` futuro;
    por ahora, manual desde el runbook).
+
+## Estado real (19 sep 2026) — esquema de prod pendiente
+
+El proyecto Supabase de prod `gwugycdyhcmojpjlitps` (región EU, al que apuntan
+`SUPABASE_URL` / `VITE_SUPABASE_URL` en SSM) **no tiene el esquema de la
+aplicación**: las 18 migraciones del repo **nunca se aplicaron**. Es el destino
+limpio de la migración desde el prototipo de Lovable (congelado; ver
+`docs/legacy/CAMBIOS-LOVABLE.md` y ADR 0002), no el origen. La app sirve y el
+login funciona (`auth.users` es una tabla que Supabase gestiona por defecto),
+pero cualquier operación de datos falla hasta aplicar el esquema.
+
+**Para aplicar el esquema hace falta acceso a nivel de base**, y la
+`service_role` **no basta**: PostgREST no expone DDL (crear tablas), la
+Management API de Supabase rechaza la `service_role` (401) y no hay ningún RPC
+`exec_sql` expuesto por defecto. Se necesita una de:
+
+1. **Password de la base** del proyecto `gwugycdyhcmojpjlitps` (Project Settings
+   → Database → Connection string). Con ella se corre
+   `SUPABASE_DB_URL=postgresql://postgres.gwugycdyhcmojpjlitps:<pass>@aws-0-eu-central-1.pooler.supabase.com:6543/postgres bun run scripts/db/migrar.ts`
+   (antes `db:migrar:dry`). Ese valor debería vivir en SSM como
+   `SUPABASE_DB_URL` para futuros deploys.
+2. **Personal Access Token de Supabase** (`supabase.com/dashboard/account/tokens`)
+   para usar la Management API `POST /v1/projects/{ref}/database/query` y lanzar
+   el SQL de las migraciones.
+
+Si nadie con acceso al proyecto `gwugycdyhcmojpjlitps` puede dar ninguna de las
+dos, la alternativa es **crear un Supabase nuevo** bajo una cuenta que
+controlemos (región EU), aplicar las migraciones allí y repuntar la app
+(actualizar `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`,
+`SUPABASE_SERVICE_ROLE_KEY`, `VITE_SUPABASE_*` y `SUPABASE_DB_URL` en SSM,
+rebuild de la imagen `bff-web` con los nuevos `VITE_*` y redeploy).
+
+### Orden de aplicación (18 ficheros, lineal)
+
+`migrar.ts` los aplica en orden de timestamp. Verificado que están limpias de
+credenciales/personal real (RS-3): los `11111111-…` son UUIDs de la org
+**demo** ("Transportes Levante Demo") y los `service_role` que aparecen son
+destinos de `GRANT` (SQL normal), no secretos. Tras aplicar, el esquema incluye
+`organizations`, `organization_memberships`, `profiles`, `vehicles`,
+`sanctions`, `sanction_deadlines`, `sanction_actions`, `sanction_comments`,
+`activity_logs`, `legal_sources`, `platform_admins`, etc., con RLS y funciones
+`is_org_member` / `has_org_role` / `is_platform_admin`.
+
+### Tras aplicar el esquema
+
+- **Primer admin/superadmin**: dar de alta un usuario desde la web (autoservicio)
+  y promoverlo con `scripts/db/crear-superadmin.sql` (inserta en
+  `platform_admins`; busca por email, no por UUID).
+- **Primera empresa**: el alta desde la web crea `organizations` + la membresía
+  del usuario. La org demo "Transportes Levante Demo" queda sembrada por la
+  migración para probar sin dar de alta nada.

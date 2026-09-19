@@ -1,23 +1,28 @@
-# SANCIONA FLEET — Especificación funcional (v0.3)
+# SANCIONA FLEET — Especificación funcional (v0.4)
 
+> **v0.4 (19 sep 2026):** las 11 decisiones pendientes (10 de producto + 1 de
+> alcance de migración) se resuelven aplicando sus valores por defecto — ver ADR
+> 0004. Quedan tres puertas humanas bloqueantes para v1 pública (validación
+> jurídica del motor de plazos, confirmación de precios, DPA con OpenRouter),
+> ninguna bloqueante para seguir construyendo.
+>
 > **v0.3 (12 sep 2026):** incorpora §3.10 — alta en autoservicio, planes, correo
 > transaccional y login por usuario, capacidades construidas en Lovable sin pasar
-> por esta spec. Sube a 12 las decisiones pendientes.
+> por esta spec.
 >
-> **Estado:** completa para desarrollo, con **12 decisiones de producto (§4 y §3.10)
-> y 1 decisión de alcance de migración (§7.5) aún pendientes de confirmar** por
-> Cristian y Jorge (socios). No bloquean empezar a construir: cada una lleva su
-> recomendación por defecto.
+> **Estado:** completa para desarrollo. Las decisiones de producto están
+> resueltas (ADR 0004); las puertas humanas restantes están en
+> `docs/compliance/README.md` y `TAREAS-CRISTIAN.md`.
 > **Arquitectura:** microservicios (§7) — decisión ya confirmada, no pendiente.
-> **Base:** `PROYECTO-MULTAS-INVENTARIO.md` (estado real del código extraído de Lovable).
-> **Método:** spec-driven development. Este documento es la fuente de verdad de
-> "qué debe hacer el sistema"; el código se construye y se revisa contra él.
-> Toda vez que este documento cambie, se versiona (v0.2, v0.3…) y se anota qué
-> cambió y por qué.
+> **Base:** `docs/legacy/INVENTARIO-AS-IS.md` (estado real del código extraído de
+> Lovable; antes referenciado como `PROYECTO-MULTAS-INVENTARIO.md`).
+> **Método:** spec-driven development (ver `docs/spec/00-metodo.md`). Este
+> documento es la fuente de verdad de "qué debe hacer el sistema"; el código se
+> construye y se revisa contra él. Toda vez que este documento cambie, se
+> versiona (v0.2, v0.3…) y se anota qué cambió y por qué.
 >
-> **Cómo leer las decisiones pendientes:** cada una lleva 🟡 **DECISIÓN PENDIENTE**
-> con una recomendación por defecto. Si Cristian/Jorge no dicen lo contrario antes
-> de que esa parte entre en desarrollo, se construye con el valor por defecto.
+> **Cómo leer las decisiones:** cada una lleva ✅ **DECIDIDO (ADR 0004)** con el
+> valor por defecto aplicado y, si aplica, su puerta humana bloqueante.
 
 ---
 
@@ -64,17 +69,14 @@ al cliente. Estos se tratan aparte.
 | **Revisor jurídico** (`revisor_juridico`) | Su organización | Editar y **validar** borradores. No cambia estados de sanción ni da de alta vehículos/conductores. |
 | **Superadministrador de plataforma** | Toda la plataforma | Visión global de todas las organizaciones (`/superadmin`), gestión de roles vía `/usuarios`. No edita datos de una empresa concreta. |
 
-🟡 **DECISIÓN PENDIENTE — nombre del rol en la UI.** Hoy convive "Gestor legal"
-(etiqueta) con "revisor jurídico" (mensajes de error, lógica). **Recomendación:**
-usar **"Revisor jurídico"** en todas partes — es el nombre técnicamente correcto
-y evita confundirlo con un gestor de sanciones.
+✅ **DECIDIDO (ADR 0004, D-1) — nombre del rol en la UI.** Se usa **"Revisor
+jurídico"** en todas partes (UI, mensajes de error, lógica). Desaparece la
+etiqueta "Gestor legal".
 
-🟡 **DECISIÓN PENDIENTE — modelo multiempresa.** ¿Una organización = una empresa
-de transporte, sin jerarquía? ¿O se necesita soportar una gestoría que administra
-varias flotas/empresas clientas desde una sola cuenta? **Recomendación v1:** una
-organización = una empresa; una gestoría se modela como varias organizaciones y
-un usuario con membresía en varias (el esquema actual ya permite N:M
-usuario↔organización, así que no bloquea esta opción).
+✅ **DECIDIDO (ADR 0004, D-2) — modelo multiempresa.** Una organización = una
+empresa de transporte, sin jerarquía. Una gestoría con varias flotas clientas se
+modela como varias organizaciones y un usuario con membresía N:M en todas (el
+esquema actual ya lo permite). No hay nivel de "cuenta gestoría" en v1.
 
 ---
 
@@ -144,10 +146,11 @@ funciona así y se mantiene.
 - **RF-PLAZO-5** [NUEVO — legal, bloqueante] Los festivos deben incluir
   autonómicos, locales y móviles, no solo los 9 nacionales fijos actuales
   (§5.1, §8.1 Bloque 4). Requiere decidir fuente de datos (ver §7 Legal).
-- 🟡 **DECISIÓN PENDIENTE — validación jurídica.** Las reglas de plazo (20 días
-  naturales tráfico, 15 hábiles transporte, 1 mes recurso) deben ser
-  confirmadas por un abogado administrativista antes de v1 pública. Ver Bloque 4
-  de `TAREAS-CRISTIAN.md`. **No se libera v1 sin esta validación.**
+- ✅ **DECIDIDO (ADR 0004, D-3) — validación jurídica.** Las reglas de plazo
+  (20 días naturales tráfico, 15 hábiles transporte, 1 mes recurso) se aplican
+  por defecto. **Puerta humana bloqueante para v1 pública:** un abogado
+  administrativista debe confirmarlas antes de abrir a clientes reales (ver
+  `docs/compliance/README.md` §2). **No se libera v1 sin esta validación.**
 
 ### 3.5 Análisis con IA
 
@@ -241,52 +244,48 @@ funciona así y se mantiene.
   `/`. Debe apuntar a la ruta vigente, y `PUBLIC_SITE_URL` no debe llevar el
   dominio de Lovable como valor por defecto.
 
-🟡 **DECISIÓN PENDIENTE — precios.** Los importes vigentes en el código (Básico
-49 €, Profesional 99 €, Empresa 199 €/mes) y los límites por plan **los propuso
-el modelo de Lovable, no una decisión comercial**. En §9 el modelo de negocio
-seguía marcado como pendiente: ahora está resuelto de hecho. **Recomendación:**
-confirmarlos o cambiarlos conscientemente antes de que los vea un cliente.
+✅ **DECIDIDO (ADR 0004, D-4) — precios.** Se mantienen los importes vigentes
+como valores por defecto (Básico 49 €, Profesional 99 €, Empresa 199 €/mes) y los
+límites por plan actuales. **Puerta humana:** confirmarlos o cambiarlos
+conscientemente antes de que los vea un cliente (decisión comercial de los
+socios).
 
-🟡 **DECISIÓN PENDIENTE — dónde vive la facturación.** El mapa de servicios de
-§7.1 no contempla ninguno responsable de planes, cobros ni suscripciones.
-**Recomendación:** un `billing-service` propio, dueño de `organizations.plan` y
-de la relación con la pasarela de pago. El correo transaccional, en cambio,
-encaja en `notifications-service` sin necesidad de servicio nuevo.
+✅ **DECIDIDO (ADR 0004, D-5) — dónde vive la facturación.** Se crea un
+`billing-service` propio, dueño de `organizations.plan` y de la pasarela de
+pago. El correo transaccional va en `notifications-service` (sin servicio
+nuevo). `billing-service` se añade al mapa de §7.1 y se extrae en su fase del
+strangler fig (§7.5); no bloquea v1 funcional, pero bloquea cobrar de verdad
+(RF-ALTA-EMPRESA-5).
 
 ## 4. Modelo de dominio objetivo
 
 ### 4.1 Catálogos abiertos vs. cerrados
 
-🟡 **DECISIÓN PENDIENTE — organismos sancionadores.** Hoy es una lista cerrada
-sesgada a Valencia/Alicante/Castellón (`ORGANISMOS` en `fleet.ts`), y de ella
-depende la detección del régimen (tráfico vs. transporte) para el motor de
-plazos (§5.1, §8.3 #17). **Recomendación:** separar en dos campos:
+✅ **DECIDIDO (ADR 0004, D-6) — organismos sancionadores.** Se separa en dos
+campos:
 1. **Organismo** — campo libre (texto), para cualquier ayuntamiento/provincia.
-2. **Régimen sancionador** — selector explícito (Tráfico / Transporte), que el
-   usuario confirma o que se sugiere por palabras clave del organismo pero
-   nunca se infiere en silencio. Esto desbloquea el catálogo sin tocar la
-   fiabilidad del motor de plazos.
+2. **Régimen sancionador** — selector explícito (Tráfico / Transporte) que el
+   usuario confirma o que se sugiere por palabras clave del organismo, pero
+   **nunca se infiere en silencio**. El régimen confirmado alimenta el motor de
+   plazos.
 
-🟡 **DECISIÓN PENDIENTE — categorías de infracción.** Hoy conviven dos catálogos
-que escriben en el mismo campo (`CATEGORIAS` 14 valores vs. `CATEGORIAS_INFRACCION`
-10 valores) (§8.4 #22). **Recomendación:** un único catálogo compartido en
-`fleet.ts`, usado tanto por el alta manual como por la deducción de la IA (el
-prompt de extracción se ajusta para devolver solo valores de esa lista, o
-`"Otra"` si no encaja).
+✅ **DECIDIDO (ADR 0004, D-7) — categorías de infracción.** Un único catálogo
+compartido en `fleet.ts`, usado por el alta manual y por la deducción de la IA.
+El prompt de extracción devuelve solo valores de esa lista, o `"Otra"` si no
+encaja. Desaparece el catálogo duplicado `CATEGORIAS_INFRACCION`.
 
-🟡 **DECISIÓN PENDIENTE — prioridad "Media".** Existe en el enum de base de
-datos y se usa como valor inicial, pero no está en la lista de prioridades
-seleccionables (§8.4 #21). **Recomendación:** recuperarla como cuarta opción
-(`Baja / Media / Alta / Crítica`) y quitar "Normal", que es redundante con
-"Media". Requiere una migración de datos para los registros existentes con
-`priority = 'Normal'`.
+✅ **DECIDIDO (ADR 0004, D-8) — prioridad "Media".** Se recupera **"Media"** como
+cuarta opción seleccionable (`Baja / Media / Alta / Crítica`) y se elimina
+**"Normal"**, redundante con "Media". Requiere una migración de datos que
+reasigne los registros existentes con `priority = 'Normal'` a `priority =
+'Media'`.
 
 ### 4.2 Máquina de estados de la sanción
 
-🟡 **DECISIÓN PENDIENTE — transiciones válidas.** Hoy cualquier rol gestor puede
-mover una sanción de cualquier estado a cualquier otro (§5.2, §8.2). Antes de
-v1 hay que decidir el grafo de transiciones. **Propuesta de partida** (a
-validar, no a implementar sin confirmación):
+✅ **DECIDIDO (ADR 0004, D-9) — transiciones válidas.** Se adopta el grafo de
+transiciones siguiente como objetivo. Para v1 se implementa como
+**advertencia blanda**: se permite la transición pero se avisa si es inusual,
+sin bloquear (alcance v1 de §9). El bloqueo estricto queda para v2.
 
 ```
 Nueva ──► Pendiente de documentación
@@ -371,6 +370,7 @@ dueño de sus tablas y nadie más las toca directamente.
 | **notifications-service** | Avisos internos, y a futuro email real de invitaciones/alertas | `notifications` | RF-AUTH-3 |
 | **reporting-service** | Informes, prevención, analítica de resultados | `activity_logs`, `sanction_outcomes`, lecturas agregadas de `sanctions` | RF-INF-*, RF-PREV-* |
 | **legal-catalog-service** | Catálogo jurídico (`legal_sources`), solo lectura para el resto, solo escritura por un proceso interno controlado | `legal_sources` | §6.6 del inventario |
+| **billing-service** | Planes, cobros y suscripciones; relación con la pasarela de pago (ADR 0004, D-5). No bloquea v1 funcional; bloquea cobrar de verdad. | `organizations.plan` (migración de propiedad desde `identity`) | RF-ALTA-EMPRESA-5 |
 
 `ai-gateway` no es un servicio de negocio: es una **librería/cliente
 compartido** (`packages/ai-provider`) que `extraction-service`,
@@ -460,13 +460,13 @@ el monolito:
 5. `bff-web` se queda siendo el TanStack Start actual, pero sus rutas dejan de
    llamar a `supabase.from(...)` directamente y pasan a llamar a los servicios.
 
-🟡 **DECISIÓN PENDIENTE — alcance de la migración para v1.** ¿Se hace la
-migración completa a microservicios antes del primer cliente real, o se lanza
-v1 con el monolito arreglado (Sección 9) y la migración a microservicios corre
-en paralelo como iniciativa de arquitectura? **Recomendación:** lanzar v1 desde
-el monolito ya funcional (más rápido a ingresos) mientras se extrae
-`deadlines-service` y `ai-provider` en paralelo — son los dos de más valor y
-menor riesgo de romper nada visible para el usuario.
+✅ **DECIDIDO (ADR 0004, D-10) — alcance de la migración para v1.** Se lanza v1
+desde el monolito ya funcional (`apps/bff-web`) mientras se extraen
+`deadlines-service` y `packages/ai-provider` en paralelo (ambos ya extraídos).
+La migración completa a microservicios corre como iniciativa de arquitectura en
+paralelo, no como bloqueante de v1. Orden de extracción según §7.5:
+`identity-service` y `fleet-service` a continuación, `sanctions-service` al
+final.
 
 
 
@@ -490,8 +490,7 @@ poder operar con clientes reales. Ver Bloque 4 de `TAREAS-CRISTIAN.md`.
 
 ## 9. Alcance del MVP (v1)
 
-🟡 **DECISIÓN PENDIENTE — alcance final.** Propuesta de mínimo viable, a
-confirmar por Cristian y Jorge:
+✅ **DECIDIDO (ADR 0004, D-11) — alcance final.** Mínimo viable aprobado:
 
 **Entra en v1:**
 - Todos los `[NUEVO]` marcados como crítico: RF-ALTA-2 (alta manual funcional),
@@ -514,7 +513,7 @@ confirmar por Cristian y Jorge:
 ## 10. Trazabilidad
 
 Cada RF de este documento referencia la sección del inventario de la que nace
-(`§n` = sección de `PROYECTO-MULTAS-INVENTARIO.md`). Cuando se implemente un
+(`§n` = sección de `docs/legacy/INVENTARIO-AS-IS.md`). Cuando se implemente un
 RF, el commit/PR correspondiente debe citar su id (`RF-ALTA-2`, `RS-3`, etc.)
 para poder rastrear qué parte de la spec quedó cubierta y cuál no.
 
@@ -522,11 +521,13 @@ para poder rastrear qué parte de la spec quedó cubierta y cuál no.
 
 ## 11. Próximos pasos
 
-1. Cristian y Jorge revisan las **10 decisiones pendientes** marcadas 🟡 en este
-   documento y responden — aunque sea "de acuerdo con la recomendación" — antes
-   de que esa parte entre en desarrollo.
-2. Con eso, este documento pasa a v1.0 (ya no borrador) y se convierte en la
-   referencia para escribir historias de usuario / tickets por módulo.
+1. ~~Cristian y Jorge revisan las decisiones pendientes~~ — resueltas en ADR 0004
+   (19 sep 2026). Quedan tres puertas humanas bloqueantes para v1 pública:
+   validación jurídica del motor de plazos, confirmación de precios y DPA con
+   OpenRouter (ver `docs/compliance/README.md`).
+2. Con las decisiones resueltas, este documento pasa a v1.0 (ya no borrador) en
+   cuanto las tres puertas humanas se firmen, y se convierte en la referencia
+   para escribir historias de usuario / tickets por módulo.
 3. En paralelo, Bloques 0–2 de `TAREAS-CRISTIAN.md` (seguridad, cuentas de
    organización compartidas, infraestructura) deben ir avanzando — no bloquean
    escribir código, pero sí bloquean desplegar nada real.

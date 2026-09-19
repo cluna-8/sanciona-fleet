@@ -3,7 +3,7 @@
 Qué está hecho, qué falta y dónde vive cada cosa. Es la respuesta corta a
 "¿cómo va el proyecto?".
 
-Actualizado: 15 de septiembre de 2026.
+Actualizado: 19 de septiembre de 2026.
 
 ---
 
@@ -15,11 +15,12 @@ Actualizado: 15 de septiembre de 2026.
 | De ellos, `[EXISTENTE]` (funcionan y se conservan) | 15 |
 | De ellos, `[NUEVO]` (pendientes de construir) | 19 |
 | Requisitos sin RF asignado (capacidades añadidas en Lovable) | 4 |
-| Decisiones de producto pendientes | 10 |
-| Servicios extraídos del monolito (desplegados por separado) | 1 de 12 |
+| Decisiones de producto | 0 pendientes (11 resueltas en ADR 0004; 3 puertas humanas restantes) |
+| Servicios extraídos del monolito (desplegados por separado) | 1 de 13 (`deadlines-service`); `packages/ai-provider` extraído como librería |
 | Features modularizadas dentro de `apps/bff-web` (preparación para extraer) | 10 de 10 |
-| Tests automáticos | 47 |
-| Cobertura de tests | solo `deadlines-service` y `ai-provider` |
+| Tests automáticos | 50 |
+| Cobertura de tests | solo `deadlines-service` y `ai-provider`; `bff-web` sin tests en `main` (ver `07-plan-de-pruebas.md`) |
+| Infra AWS | Aplicada (terraform apply 18 sep): EIP 63.181.51.42, EC2, ECR, rol OIDC, SSM. Ver ADR 0003 |
 | Repositorio | [github.com/cluna-8/sanciona-fleet](https://github.com/cluna-8/sanciona-fleet) (privado) |
 
 ---
@@ -29,10 +30,11 @@ Actualizado: 15 de septiembre de 2026.
 | Pieza | Dónde | Tests | Estado |
 |---|---|:---:|---|
 | Motor de plazos | `services/deadlines-service` | 16 ✅ | Funcional. ⚠️ Pendiente validación jurídica y festivos (RF-PLAZO-5) |
-| Interfaz de IA | `packages/ai-provider` | 31 ✅ | Funcional. 4 proveedores intercambiables |
+| Interfaz de IA | `packages/ai-provider` | 34 ✅ | Funcional. Proveedor `openrouter` por defecto (ADR 0001/0003) |
 | Contratos compartidos | `packages/contracts` | — | Tipos de plazos, de IA y de dominio (`domain.ts`) |
-| CI | `.github/workflows/ci.yml` | — | Typecheck por paquete + lint + build de bff-web + tests |
-| Comparador con Lovable | `scripts/comparar-lovable.sh` | — | Detecta divergencia del prototipo |
+| CI | `.github/workflows/ci.yml` | — | verificar (typecheck+lint+build+tests) → build-and-push ECR → deploy SSM (ADR 0003). Deploy bloqueado hasta rellenar SSM/secrets de GitHub |
+| Infra AWS | `infra/aws/`, `infra/cloudflare/` | — | Terraform aplicado 18 sep (ADR 0003). EIP 63.181.51.42 |
+| Comparador con Lovable | `scripts/comparar-lovable.sh` | — | Detecta divergencia del prototipo (congelado 18 sep) |
 | Frontend (`apps/bff-web`) | `apps/bff-web/src/features/*` | — | Sin acoplamiento a Lovable; 10 features modularizadas, capa de datos separada de la UI. Verificado con `docker compose up` real (alta de cuenta, login, panel de control). Detalle completo en `docs/spec/06-arquitectura-bff-web.md` y ADR 0002 |
 
 `multas-export/` queda congelado como espejo de solo lectura del export de
@@ -65,9 +67,9 @@ que escribir los tests que hoy no existen.
 | Prioridad | RF | Qué falta |
 |---|---|---|
 | ⚠️ **Bloqueante v1** | RF-PLAZO-5 | Festivos autonómicos, locales y móviles |
-| ⚠️ **Bloqueante v1** | — | Validación jurídica del motor de plazos |
+| ⚠️ **Bloqueante v1** | — | Validación jurídica del motor de plazos (puerta humana, ADR 0004 D-3) |
 | ⚠️ **Crítico** | RF-ALTA-2 | El alta manual no tiene botón de envío |
-| ⚠️ **Seguridad** | RS-3 | Migración con contraseña en claro |
+| ✅ **Resuelto** | RS-3 | Migraciones limpias de credenciales (merge `worktree-rs3-limpiar-migraciones`, 19 sep) |
 | ⚠️ **Seguridad** | RS-2 | `/sanciones/$id` sin filtro por organización |
 | Alta | RF-PLAZO-3 | Unificar el cálculo de "plazo relevante" (triplicado) |
 | Alta | RF-PLAZO-4 | Consumir `sanction_deadlines` en vez de campos planos |
@@ -115,7 +117,7 @@ Adónde irá cada requisito cuando se complete la migración (SPEC.md §7.1):
 | `notifications-service` | RF-AUTH-3, correo transaccional | Pendiente |
 | `reporting-service` | RF-INF-1, RF-INF-2, RF-PREV-1, RF-PREV-2 | Pendiente |
 | `legal-catalog-service` | Mantenimiento de `legal_sources` | Pendiente |
-| **Sin servicio asignado** | **Facturación y cobro** | ⚠️ No existe en el mapa |
+| `billing-service` | RF-ALTA-EMPRESA-5 (planes, cobros, pasarela) | Pendiente (ADR 0004, D-5) |
 
 ---
 
@@ -128,14 +130,15 @@ Ver `docs/refactor/PLAN-REFACTOR-FRONTEND.md` (el plan) y
 |---|---|---|
 | 1. Cimientos | Vite explícito sin Lovable, poda de dependencias, CI | ✅ Completa |
 | 2. Capa de datos por feature | Sacar `supabase.from(...)` de rutas/componentes a `features/*/api` | ✅ Completa — 0 coincidencias de `supabase` en `src/routes` o `src/components`, regla de ESLint que lo bloquea a futuro |
-| 3. Descomposición de componentes | Dividir los 8 archivos de 300-760 líneas | 🟡 Parcial — componentes compartidos creados y adoptados en el dashboard; los archivos de mayor riesgo (`expediente.functions.ts`, `alta-documento.tsx`) sin tocar a propósito (ver ADR 0002) |
+| 3. Descomposición de componentes | Dividir los 8 archivos de 300-760 líneas | 🟡 Parcial — en `main` solo el "arranque"; la Etapa 3 completa (3.1–3.8 + cierre) está en `worktree-etapa3-bff-web` (PR #1, draft), pendiente de rebasear sobre `main`. Los archivos de mayor riesgo (`expediente.functions.ts`, `alta-documento.tsx`) se dejaron a propósito (ver ADR 0002) |
 | 4. Verificación end-to-end | Docker local + prueba real | ✅ Completa — `docker compose up` con ambos servicios, alta de cuenta y login reales verificados |
 
 **Antes de continuar la Etapa 3**: hace falta una base de regresión visual
 (Playwright) contra un proyecto de Supabase de test, no el de producción.
 Sin eso, dividir `expediente.functions.ts` (lógica de plazos y IA, con
 consecuencia legal directa) es el riesgo que el plan señala en §1.6 — no un
-atajo aceptable.
+atajo aceptable. La estrategia de pruebas que cubre este hueco está en
+`docs/spec/07-plan-de-pruebas.md`.
 
 ## 6. Cómo mantener esto vivo
 
@@ -147,4 +150,6 @@ atajo aceptable.
    contrario es lo que pasó con el alta en autoservicio: código en producción,
    cuatro capacidades sin requisito y decisiones de negocio tomadas por un
    modelo.
-4. **Cada sincronización con Lovable se registra** en `CAMBIOS-LOVABLE.md`.
+4. **Lovable congelado** desde el 18 sep 2026: `apps/bff-web` es la única fuente
+   viva; `multas-export/` es solo lectura. No se portan más cambios desde
+   Lovable. `CAMBIOS-LOVABLE.md` queda como historial cerrado.

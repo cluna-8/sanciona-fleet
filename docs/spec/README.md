@@ -5,6 +5,7 @@ proyecto, léelos en el orden de la tabla.
 
 | # | Documento | Responde a | Léelo si… |
 |:--:|---|---|---|
+| 0 | [`00-metodo.md`](00-metodo.md) | ¿Cómo se construye y se revisa el proyecto? | Vas a contribuir. Spec-driven, ramas/worktrees, strangler fig, puertas CI |
 | 1 | [`01-glosario.md`](01-glosario.md) | ¿Qué significan "expediente", "régimen sancionador", "reducción del 50 %"? | Es tu primer contacto. **Sin esto, el resto no se entiende.** |
 | 2 | [`02-flujos.md`](02-flujos.md) | ¿Cómo circula una multa por el sistema, de principio a fin? | Quieres el panorama antes que el detalle |
 | 3 | [`../../SPEC.md`](../../SPEC.md) | ¿Qué debe hacer el sistema? | Vas a construir o revisar algo. **Es la fuente de verdad** |
@@ -12,6 +13,7 @@ proyecto, léelos en el orden de la tabla.
 | 5 | [`04-modelo-datos.md`](04-modelo-datos.md) | ¿Qué entidades hay y qué reglas nunca se rompen? | Tocas base de datos o escribes queries |
 | 6 | [`05-trazabilidad.md`](05-trazabilidad.md) | ¿Qué está hecho, qué falta y dónde vive cada cosa? | Quieres saber el estado real del proyecto |
 | 6b | [`06-arquitectura-bff-web.md`](06-arquitectura-bff-web.md) | ¿Qué hace `apps/bff-web` y cómo está construido por dentro? | Vas a tocar el frontend, o quieres entenderlo sin leer código |
+| 6c | [`07-plan-de-pruebas.md`](07-plan-de-pruebas.md) | ¿Qué se prueba, cómo y qué falta por probar? | Vas a añadir o ejecutar pruebas |
 | 7 | [`../adr/`](../adr/) | ¿Por qué se decidió así y no de otra forma? | Vas a cambiar una decisión estructural |
 | 8 | [`../legacy/INVENTARIO-AS-IS.md`](../legacy/INVENTARIO-AS-IS.md) | ¿Qué había antes y qué estaba roto? | Necesitas el contexto de una decisión |
 | 9 | [`../legacy/CAMBIOS-LOVABLE.md`](../legacy/CAMBIOS-LOVABLE.md) | ¿Qué se ha tocado en el prototipo desde la última vez? | Vuelves después de unos días |
@@ -41,8 +43,10 @@ Tres reglas prácticas:
 
 - `[EXISTENTE]` — ya funciona así en el prototipo; se conserva.
 - `[NUEVO]` — corrige un hallazgo del inventario o añade capacidad.
-- 🟡 **DECISIÓN PENDIENTE** — necesita una respuesta humana. Lleva siempre una
-  recomendación por defecto, para que la falta de respuesta no bloquee.
+- ✅ **DECIDIDO (ADR n, D-k)** — decisión de producto resuelta (ADR 0004). Antes
+  era 🟡 "pendiente"; ahora se aplica el valor por defecto. Las puertas humanas
+  restantes (validación jurídica, precios, DPA) se siguen en
+  `docs/compliance/README.md`.
 - ⚠️ — riesgo legal o de seguridad. No se pasa por alto en una revisión.
 
 ## Advertencia permanente

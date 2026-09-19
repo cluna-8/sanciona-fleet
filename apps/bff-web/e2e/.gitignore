@@ -1,0 +1,6 @@
+# Artefactos de E2E (no commitear)
+.auth/
+test-results/
+playwright-report/
+blob-report/
+.playwright/

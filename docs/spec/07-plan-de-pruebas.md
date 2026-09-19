@@ -16,11 +16,12 @@ Actualizado: 19 de septiembre de 2026.
 | **Unitario** | Motor de plazos (lógica pura, sin IA) | `services/deadlines-service/test/plazos.test.ts` | 16 |
 | **Unitario** | Interfaz de IA: JSON, normalización, proveedores | `packages/ai-provider/test/*.test.ts` | 34 |
 | **Unitario** | Validación de extracción (CIF, tipo, comparación de empresa) | `apps/bff-web/src/lib/validacion-extraccion.test.ts` | 6 |
-| **Integración** | — | — | 0 |
-| **E2E** | — | — | 0 |
+| **Integración** | bff-web → deadlines-service (contrato de plazos) | `apps/bff-web/e2e/expediente.spec.ts` (CU-03, en vivo) | 1 |
+| **E2E** | Flujos de usuario en prod (auth, rutas, flota, CU-02/03/04/05/06, superadmin, secundarias) | `apps/bff-web/e2e/*.spec.ts` | 28 |
 
-**Total: 56 tests en 5 archivos, 145 aserciones.** `bun test` los ejecuta todos
-desde la raíz del monorepo.
+**Total: 56 tests unitarios + 28 E2E = 84 tests.** `bun test` ejecuta los
+unitarios desde la raíz del monorepo; `bash scripts/run-e2e.sh` ejecuta los
+E2E contra prod (inyecta secretos SSM).
 
 Lo que no se prueba hoy: el resto de la lógica de `apps/bff-web` (alta, flota,
 borradores, documentos, informes, avisos, análisis, plazos UI), cualquier
@@ -83,6 +84,16 @@ refactor (§1.6). La cobertura E2E es la puerta.
 > cuesta. Se mockea el proveedor en E2E; la integración real con OpenRouter se
 > prueba aparte (§3).
 
+**Estado (2026-09-20):** suite E2E Playwright landada en `apps/bff-web/e2e/`
+(11 specs) + `scripts/run-e2e.sh` (inyecta secretos SSM). Corrida contra **prod
+en vivo** `https://sancionafleet.fexia.es`: **27 PASS / 0 FAIL / 1 BLOCKED**.
+CU-03 ✅, CU-06 ✅; CU-04 (análisis IA real, OpenRouter) ✅; CU-05 (borrador
+versionado) ✅; CU-02 documenta bug heredado (sin botón submit, también en
+Lovable). **CU-01 bloqueado por GAP de infra** (bucket Storage
+`sanction-documents` ausente en prod — ver `docs/spec/08-paridad-lovable.md`
+GAP-1), no por código. Detalle y matriz de paridad en
+`docs/spec/08-paridad-lovable.md`.
+
 ---
 
 ## 3. Pruebas que requieren recursos externos (no en CI por defecto)
@@ -140,8 +151,16 @@ Antes del primer cliente real, el plan exige:
   humana).
 - ⬜ Extracción/validación unitaria ampliada (RF-ALTA-3/4, RF-PLAZO-3).
 - ⬜ E2E Playwright de CU-01, CU-03, CU-06 contra Supabase de test.
+  - ✅ **Hecho (2026-09-20):** suite landada, CU-03 y CU-06 PASS en prod.
+    CU-01 bloqueado por bucket Storage ausente (GAP-1 infra, ver
+    `08-paridad-lovable.md`). Adicionalmente CU-04 (IA real) y CU-05 PASS.
 - ⬜ Prueba de extracción con PDF real contra OpenRouter.
+  - ✅ **Hecho (2026-09-20):** CU-04 análisis IA real contra OpenRouter PASS
+    en prod (semáforo + confianza). La extracción de CU-01 queda pendiente
+    del bucket.
 - ⬜ Integración `bff-web → deadlines-service` (contrato).
+  - ✅ **Hecho (2026-09-20):** CU-03 recalcular plazos PASS en prod (3 plazos
+    con tipo y fecha vía deadlines-service).
 
 Lo que queda fuera de v1 (backlog v2): E2E de flujos de borradores/docx/diff
 (RF-BORRADOR-4/5/6), analítica de resultados (RF-INF-2).

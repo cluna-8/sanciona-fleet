@@ -41,6 +41,11 @@ resource "aws_ssm_parameter" "config" {
   value       = each.value
   description = "Configuración de ${var.project_name} (${var.environment})"
   tags        = local.common_tags
+  # El valor real lo escribe scripts/fill-ssm.sh / inject-secrets.sh fuera de
+  # Terraform; que TF no lo revertiria a PENDIENTE-RELLENAR en el proximo plan.
+  lifecycle {
+    ignore_changes = [value]
+  }
 }
 
 resource "aws_ssm_parameter" "secret" {
@@ -50,4 +55,7 @@ resource "aws_ssm_parameter" "secret" {
   value       = "PENDIENTE-RELLENAR"
   description = "Secreto de ${var.project_name} (${var.environment}) — no commitear"
   tags        = local.common_tags
+  lifecycle {
+    ignore_changes = [value]
+  }
 }

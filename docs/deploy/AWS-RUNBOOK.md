@@ -1,9 +1,12 @@
 # Runbook: despliegue en AWS (Sanciona Fleet)
 
-> **Estado:** el stack de producción (`docker-compose.prod.yml`) y la infra
-> (`infra/`) están escritos y verificados en local (build + smoke `/health`).
-> Los pasos de AWS/Cloudflare/Supabase requieren credenciales que esta sesión
-> no tiene; son instrucciones para Cristian. Ver ADR 0003.
+> **Estado:** PRODUCCIÓN VIVA desde el 19 sep 2026. El stack corre en
+> `https://sancionafleet.fexia.es` (EC2 `i-0dcf71a48674181c3`, EIP
+> `63.181.51.42`): `bff-web` + `deadlines-service` en Docker, Caddy como reverse
+> proxy con TLS de Let's Encrypt, secretos en SSM, imágenes en ECR. El primer
+> arranque de cloud-init falló (paquete `awscli` sin candidato en noble); la EC2
+> se bootstrapeó a mano con `scripts/bootstrap-ec2.sh` (ver §1.1). El primer
+> deploy fue manual por SSM Run Command. Ver ADR 0003.
 
 Sustituye a `ELEA-RUNBOOK.md` (Elea quedó fuera del alcance). El destino es
 **AWS EC2 + Docker + Caddy**, dominio en **Cloudflare**, IA vía **OpenRouter**,
@@ -26,8 +29,8 @@ base en **Supabase** (región EU).
 ```sh
 cd infra/aws
 terraform init
-terraform plan  -var domain_name=app.sanciona-fleet.com
-terraform apply -var domain_name=app.sanciona-fleet.com
+terraform plan  -var domain_name=sancionafleet.fexia.es
+terraform apply -var domain_name=sancionafleet.fexia.es
 ```
 
 Outputs a anotar: `instance_public_ip`, `instance_id`, `ecr_bff_web_url`,
@@ -40,6 +43,29 @@ el repo clonado en `/opt/sanciona-fleet`.
 > (URL `https://token.actions.githubusercontent.com`, audience
 > `sts.amazonaws.com`). El rol y su trust están en `infra/aws/iam.tf`. Ver
 > `docs/deploy/CI-CD.md` §Prerrequisitos.
+
+### 1.1. Si cloud-init falló (recuperación manual)
+
+En el primer arranque real (18 sep 2026) el `user_data.sh` abortó porque el
+paquete `awscli` no tenía candidato en el mirror noble de Ubuntu en ese
+instante, y `set -euo pipefail` cortó el script antes de instalar Docker/Caddy.
+Resultado: EC2 encendida pero vacía (nada en 80/443). El `user_data.sh` ya
+instala `awscli` con el instalador bundled oficial (no apt), así que un
+`terraform destroy && apply` nuevo no lo reproducirá. Pero si una instancia ya
+está en ese estado, no hace falta recrearla: bootstrapear por SSM Run Command:
+
+```sh
+# El script está en el repo (scripts/bootstrap-ec2.sh). Se envía por SSM
+# (base64 para evitar problemas de quoting):
+B64=$(base64 -w0 scripts/bootstrap-ec2.sh)
+aws ssm send-command --region eu-central-1 \
+  --document-name AWS-RunShellScript \
+  --instance-ids i-0dcf71a48674181c3 \
+  --parameters "commands=[\"echo $B64 | base64 -d > /tmp/bs.sh && sudo bash /tmp/bs.sh\"]"
+```
+
+Es idempotente: instala lo que falte y clona el repo (público). Tras el
+bootstrap, seguir por el §6 (deploy manual).
 
 ## 2. Rellenar secretos en SSM (no en el repo)
 
@@ -55,7 +81,7 @@ aws ssm put-parameter --name "$PFX/IA_PROVEEDOR"                        --type S
 aws ssm put-parameter --name "$PFX/IA_API_KEY"                          --type SecureString --value "<openrouter>"   --overwrite
 aws ssm put-parameter --name "$PFX/IA_MODELO_EXTRACCION"               --type String      --value "<slug-or>"      --overwrite
 aws ssm put-parameter --name "$PFX/IA_MODELO_ANALISIS"                  --type String      --value "<slug-or>"      --overwrite
-aws ssm put-parameter --name "$PFX/PUBLIC_SITE_URL"                     --type String      --value "https://app.sanciona-fleet.com" --overwrite
+aws ssm put-parameter --name "$PFX/PUBLIC_SITE_URL"                     --type String      --value "https://sancionafleet.fexia.es" --overwrite
 # Opcional: Resend (correo transaccional)
 aws ssm put-parameter --name "$PFX/RESEND_API_KEY" --type SecureString --value "<resend>" --overwrite
 aws ssm put-parameter --name "$PFX/EMAIL_FROM"     --type String       --value "no-reply@sanciona-fleet.com" --overwrite
@@ -88,12 +114,13 @@ terraform apply \
   -var cloudflare_api_token=<token> \
   -var cloudflare_zone_id=<zone_id> \
   -var ec2_public_ip=<instance_public_ip> \
-  -var domain_name=app.sanciona-fleet.com
+  -var domain_name=sancionafleet.fexia.es
 ```
 
-Crea el registro A (proxied) y fuerza TLS Full + always_use_https + TLS 1.2/1.3.
-Caddy pide el cert de Let's Encrypt en el primer arranque. Ver
-`docs/deploy/DNS-TLS.md`.
+Crea el registro A (DNS-only, `proxied=false`) apuntando a la EIP. El token de
+Cloudflare solo tiene `Zone:DNS:Edit`, así que el modo TLS se gestiona en el
+panel (o ampliando el token; ver `infra/cloudflare/dns.tf`). Caddy termina TLS
+en el origen con Let's Encrypt.
 
 ## 5. Configurar CI/CD en GitHub
 
@@ -128,7 +155,7 @@ aws ssm send-command --document-name AWS-RunShellScript \
 Smoke:
 
 ```sh
-curl -I https://app.sanciona-fleet.com/health   # 200 ok
+curl -I https://sancionafleet.fexia.es/health   # 200 ok
 ```
 
 ## 7. Operación del día a día

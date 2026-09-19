@@ -28,9 +28,17 @@ locals {
   }
 
   # Parámetros secretos (SecureString). Valor vacío: rellenar a mano.
+  # SUPABASE_DB_URL es la cadena del pooler (postgres.<ref>:<pass>@aws-1-eu-west-1
+  # .pooler.supabase.com:5432) y la usa SOLO el runner de migraciones
+  # (scripts/db/migrar.ts, manual o futuro job `migrate` de CI). NO se inyecta en
+  # el contenedor runtime (inject-secrets.sh no la lee): bff-web usa service_role
+  # vía PostgREST, no la password de base. Así no se extiende la credencial de DDL
+  # al contenedor. El valor se escribe a mano (CLI) y TF no lo reverte
+  # (lifecycle ignore_changes).
   secret_params = [
     "SUPABASE_SERVICE_ROLE_KEY",
     "IA_API_KEY",
+    "SUPABASE_DB_URL",
   ]
 }
 

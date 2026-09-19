@@ -73,36 +73,64 @@ service role key al cliente.
 3. Commitear. Al mergear a `main`, CI podría aplicarla (job `migrate` futuro;
    por ahora, manual desde el runbook).
 
-## Estado real (19 sep 2026) — esquema de prod pendiente
+## Estado real (19 sep 2026) — esquema de prod APLICADO ✅
 
-El proyecto Supabase de prod `gwugycdyhcmojpjlitps` (región EU, al que apuntan
-`SUPABASE_URL` / `VITE_SUPABASE_URL` en SSM) **no tiene el esquema de la
-aplicación**: las 18 migraciones del repo **nunca se aplicaron**. Es el destino
-limpio de la migración desde el prototipo de Lovable (congelado; ver
-`docs/legacy/CAMBIOS-LOVABLE.md` y ADR 0002), no el origen. La app sirve y el
-login funciona (`auth.users` es una tabla que Supabase gestiona por defecto),
-pero cualquier operación de datos falla hasta aplicar el esquema.
+El proyecto Supabase de prod `gwugycdyhcmojpjlitps` (al que apuntan
+`SUPABASE_URL` / `VITE_SUPABASE_URL` en SSM) **tiene el esquema completo**: las
+**18 migraciones del repo se aplicaron** el 19 sep 2026 con
+`scripts/db/migrar.ts` contra el pooler. Es el destino limpio de la migración
+desde el prototipo de Lovable (congelado; ver `docs/legacy/CAMBIOS-LOVABLE.md`
+y ADR 0002).
 
-**Para aplicar el esquema hace falta acceso a nivel de base**, y la
-`service_role` **no basta**: PostgREST no expone DDL (crear tablas), la
-Management API de Supabase rechaza la `service_role` (401) y no hay ningún RPC
-`exec_sql` expuesto por defecto. Se necesita una de:
+Tras aplicar, `public._schema_migrations` registra 18 filas y el esquema incluye
+`organizations`, `organization_members`, `profiles`, `vehicles`, `sanctions`,
+`sanction_deadlines`, `sanction_actions`, `sanction_comments`, `activity_logs`,
+`legal_sources`, `platform_admins`, etc. (22 tablas), con RLS y funciones
+`is_org_member` / `has_org_role` / `is_platform_admin`. La org demo
+"Transportes Levante Demo, S.L." (`11111111-…`) queda sembrada.
 
-1. **Password de la base** del proyecto `gwugycdyhcmojpjlitps` (Project Settings
-   → Database → Connection string). Con ella se corre
-   `SUPABASE_DB_URL=postgresql://postgres.gwugycdyhcmojpjlitps:<pass>@aws-0-eu-central-1.pooler.supabase.com:6543/postgres bun run scripts/db/migrar.ts`
-   (antes `db:migrar:dry`). Ese valor debería vivir en SSM como
-   `SUPABASE_DB_URL` para futuros deploys.
-2. **Personal Access Token de Supabase** (`supabase.com/dashboard/account/tokens`)
-   para usar la Management API `POST /v1/projects/{ref}/database/query` y lanzar
-   el SQL de las migraciones.
+> **Importante — host/region del pooler.** La conexión **directa**
+> `db.gwugycdyhcmojpjlitps.supabase.co:5432` es **solo IPv6** (sin registro A);
+> desde entornos sin IPv6 (la EC2 de deploy, máquinas sin ruta v6) es
+> inalcanzable. El **pooler** de este proyecto está en
+> **`aws-1-eu-west-1.pooler.supabase.com`** (Dublin), **no** `aws-0-eu-central-1`
+> (el cluster eu-central-1 responde "tenant not found"). Usar modo sesión
+> (puerto **5432**) para DDL multi-statement en transacción; 6543 es modo
+> transacción. Usuario: `postgres.gwugycdyhcmojpjlitps`.
+>
+> Nota: la infra AWS está en `eu-central-1` (Frankfurt) y Supabase en
+> `eu-west-1` (Dublin) — ambas región EU (RGPD), pero la app cruza región
+> EU↔EU para llegar a la BD. Si se quiere misma región, recrear el Supabase en
+> eu-central-1 o mover la EC2 a eu-west-1.
 
-Si nadie con acceso al proyecto `gwugycdyhcmojpjlitps` puede dar ninguna de las
-dos, la alternativa es **crear un Supabase nuevo** bajo una cuenta que
-controlemos (región EU), aplicar las migraciones allí y repuntar la app
-(actualizar `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`,
-`SUPABASE_SERVICE_ROLE_KEY`, `VITE_SUPABASE_*` y `SUPABASE_DB_URL` en SSM,
-rebuild de la imagen `bff-web` con los nuevos `VITE_*` y redeploy).
+### Cómo se aplicó (y cómo re-aplicar migraciones futuras)
+
+```sh
+# Cadena del pooler (sesión, 5432). El password va en SSM
+# /sanciona-fleet/prod/SUPABASE_DB_URL (ver abajo).
+export SUPABASE_DB_URL="postgresql://postgres.gwugycdyhcmojpjlitps:<pass>@aws-1-eu-west-1.pooler.supabase.com:5432/postgres"
+
+# 1. Ver qué aplicaría sin tocar nada
+bun run db:migrar:dry
+
+# 2. Aplicar (cada migración en su transacción; aborta sin marcar si una falla)
+bun run db:migrar
+```
+
+`migrar.ts` es idempotente: crea `public._schema_migrations` si no existe,
+compara por `filename` y SHA-256, y aplica solo los pendientes. Re-aplicar tras
+añadir una migración nueva es seguro.
+
+### Credencial de base en SSM
+
+La `service_role` **no basta** para DDL (PostgREST no expone crear tablas; la
+Management API rechaza `service_role` 401; no hay `exec_sql` por defecto). Para
+aplicar migraciones hace falta la **password de la base** (Project Settings →
+Database → Connection string). Ese valor vive en SSM como
+**`/sanciona-fleet/prod/SUPABASE_DB_URL`** (SecureString, la cadena completa
+con `postgres.<ref>:<pass>@aws-1-eu-west-1.pooler.supabase.com:5432`). El
+contenedor `bff-web` **no** la lee (usa `service_role` vía PostgREST); solo la
+usa el runner de migraciones, manual o desde un futuro job `migrate` de CI.
 
 ### Orden de aplicación (18 ficheros, lineal)
 
@@ -115,11 +143,17 @@ destinos de `GRANT` (SQL normal), no secretos. Tras aplicar, el esquema incluye
 `activity_logs`, `legal_sources`, `platform_admins`, etc., con RLS y funciones
 `is_org_member` / `has_org_role` / `is_platform_admin`.
 
-### Tras aplicar el esquema
+### Tras aplicar el esquema — estado de cuentas (19 sep 2026)
 
-- **Primer admin/superadmin**: dar de alta un usuario desde la web (autoservicio)
-  y promoverlo con `scripts/db/crear-superadmin.sql` (inserta en
-  `platform_admins`; busca por email, no por UUID).
-- **Primera empresa**: el alta desde la web crea `organizations` + la membresía
-  del usuario. La org demo "Transportes Levante Demo" queda sembrada por la
-  migración para probar sin dar de alta nada.
+- **Cuenta de Cristian** (`cristian@sanciona-fleet.com`,
+  `auth.users.id = cc8161f2-9907-41b6-bb8f-6220d6130c3e`) creada vía Admin API
+  de Supabase; login verificado. Al registrarse, el BFF creó su organización
+  `4dfd1713-…` ("cristian") y la membresía con rol `admin_empresa`. **El panel
+  es funcional**: al entrar ve su org y puede operar vehículos/sanciones.
+- **Superadmin de plataforma**: `platform_admins` arranca vacío. Para promover
+  a Cristian (acceso de plataforma, cross-org) ejecutar
+  `scripts/db/crear-superadmin.sql` con `admin_email='cristian@sanciona-fleet.com'`
+  (busca por email, inserta en `platform_admins`; requiere conexión de base).
+  **Pendiente de autorización explícita** del propietario.
+- **Org demo**: "Transportes Levante Demo, S.L." (`11111111-…`) sembrada por la
+  migración. Para probarla, añadir a Cristian como miembro de esa org.

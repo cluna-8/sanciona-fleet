@@ -44,8 +44,8 @@ RDS, sin LB (Caddy en la propia EC2 hace terminación TLS).
 # 1. Infra AWS
 cd infra/aws
 terraform init
-terraform plan  -var domain_name=app.sanciona-fleet.com
-terraform apply -var domain_name=app.sanciona-fleet.com
+terraform plan  -var domain_name=sancionafleet.fexia.es
+terraform apply -var domain_name=sancionafleet.fexia.es
 # outputs: instance_public_ip, ecr_*, github_deploy_role_arn, ssm_parameter_prefix
 
 # 2. Rellenar secrets en SSM (no en el repo)
@@ -59,7 +59,7 @@ aws ssm put-parameter --name "/sanciona-fleet/prod/IA_API_KEY" \
 cd ../cloudflare
 terraform init
 terraform apply -var cloudflare_api_token=... -var cloudflare_zone_id=... \
-  -var ec2_public_ip=<instance_public_ip> -var domain_name=app.sanciona-fleet.com
+  -var ec2_public_ip=<instance_public_ip> -var domain_name=sancionafleet.fexia.es
 ```
 
 ## Quiero cambiar algo

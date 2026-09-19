@@ -70,10 +70,20 @@ data "aws_iam_policy_document" "github_assume" {
       identifiers = [data.aws_iam_openid_connect_provider.github.arn]
     }
     # Solo el repo indicado, solo la rama main (despliegue de prod).
+    # GitHub emite el claim `sub` con dos formatos según el dueño del repo:
+    #  - repo:org/repo:ref:...  (repos de organización)
+    #  - repo:<login>@<owner_id>/<repo>@<repo_id>:ref:...  (repos de USUARIO;
+    #    el @<id> evita que un renombrado de cuenta herede el permiso).
+    # Este repo (cluna-8/sanciona-fleet) es de usuario, así que el sub real
+    # lleva @187745221 (owner_id) y @1370951890 (repo_id). Se aceptan ambos
+    # formatos (StringLike = OR); los IDs son GitHub-asignados y estables.
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_org}/${var.github_repo}:ref:refs/heads/main"]
+      values = [
+        "repo:${var.github_org}/${var.github_repo}:ref:refs/heads/main",
+        "repo:${var.github_org}@${var.github_owner_id}/${var.github_repo}@${var.github_repo_id}:ref:refs/heads/main",
+      ]
     }
   }
 }

@@ -37,6 +37,18 @@ obsoletos de la misma rama.
    mano una vez (IAM → Identity providers → Add provider → OpenID Connect,
    URL `https://token.actions.githubusercontent.com`, audience
    `sts.amazonaws.com`). El rol y su trust están en `iam.tf`.
+
+   > **Claim `sub` en repos de usuario.** GitHub firma el `sub` del OIDC de dos
+   > formas: `repo:<org>/<repo>:ref:...` para repos de organización, y
+   > `repo:<login>@<owner_id>/<repo>@<repo_id>:ref:...` para repos de **usuario**
+   > (el `@<id>` evita que un renombrado de cuenta herede el permiso). Este repo
+   > es de usuario (`cluna-8/sanciona-fleet`, owner_id `187745221`,
+   > repo_id `1370951890`), así que `iam.tf` acepta **ambos** formatos en el
+   > `StringLike`. Si `build-and-push` falla con
+   > `Not authorized to perform sts:AssumeRoleWithWebIdentity` y el trust parece
+   > correcto, comprueba en CloudTrail el `sub` real: el literal sin `@id` no
+   > coincide. Los IDs se obtienen con
+   > `gh api repos/cluna-8/sanciona-fleet --jq '"owner=\(.owner.id) repo=\(.id)"'`.
 3. **Secretos de GitHub (repo → Settings → Secrets and variables)**:
    - **Variables** (no sensibles, se ven en logs):
      - `AWS_DEPLOY_ROLE_ARN` ← output `github_deploy_role_arn`

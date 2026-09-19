@@ -45,6 +45,22 @@ variable "github_repo" {
   default     = "sanciona-fleet"
 }
 
+# IDs numéricos de GitHub del owner y del repo. Para repos de usuario, GitHub
+# firma el claim `sub` del OIDC como `repo:<login>@<owner_id>/<repo>@<repo_id>:...`
+# (no `repo:<login>/<repo>:...`). Se obtienen con:
+#   gh api repos/cluna-8/sanciona-fleet --jq '"owner=\(.owner.id) repo=\(.id)"'
+variable "github_owner_id" {
+  description = "ID numérico de GitHub del owner del repo (para el sub del OIDC)."
+  type        = string
+  default     = "187745221"
+}
+
+variable "github_repo_id" {
+  description = "ID numérico de GitHub del repo (para el sub del OIDC)."
+  type        = string
+  default     = "1370951890"
+}
+
 variable "domain_name" {
   description = "Dominio público de la plataforma (apuntado en Cloudflare, ver Parte 4)."
   type        = string

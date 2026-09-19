@@ -48,5 +48,5 @@ variable "github_repo" {
 variable "domain_name" {
   description = "Dominio público de la plataforma (apuntado en Cloudflare, ver Parte 4)."
   type        = string
-  default     = "app.sanciona-fleet.com"
+  default     = "sancionafleet.fexia.es"
 }

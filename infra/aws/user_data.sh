@@ -20,8 +20,14 @@ APP_DIR="/opt/$PROJECT_NAME"
 export DEBIAN_FRONTEND=noninteractive
 
 # --- Docker + compose ---
+# OJO: awscli NO se instala por apt. En el primer arranque (18 sep 2026) el
+# paquete `awscli` no tenia candidato en el mirror noble y `set -euo pipefail`
+# aborto TODO el user_data: ni Docker ni Caddy ni el repo se llegaron a
+# instalar. Se instala con el instalador bundled oficial (siempre disponible)
+# mas abajo. Ver scripts/bootstrap-ec2.sh (recuperacion manual) y
+# docs/deploy/AWS-RUNBOOK.md §1.1.
 apt-get update -y
-apt-get install -y ca-certificates curl gnupg git awscli
+apt-get install -y ca-certificates curl gnupg git unzip
 install -m 0755 -d /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 chmod a+r /etc/apt/keyrings/docker.gpg
@@ -31,6 +37,14 @@ apt-get update -y
 apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 systemctl enable --now docker
 usermod -aG docker ubuntu
+
+# --- AWS CLI (instalador bundled oficial; no apt) ---
+if ! command -v aws >/dev/null 2>&1; then
+  curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip
+  unzip -q /tmp/awscliv2.zip -d /tmp
+  /tmp/aws/install
+  rm -rf /tmp/aws /tmp/awscliv2.zip
+fi
 
 # --- Caddy (repo oficial cloudsmith; no esta en los repos apt por defecto) ---
 apt-get install -y debian-keyring debian-archive-keyring apt-transport-https curl

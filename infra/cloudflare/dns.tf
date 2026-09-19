@@ -29,9 +29,9 @@ variable "cloudflare_zone_id" {
 }
 
 variable "domain_name" {
-  description = "Subdominio completo (app.sanciona-fleet.com)."
+  description = "Dominio público de la plataforma (sancionafleet.fexia.es)."
   type        = string
-  default     = "app.sanciona-fleet.com"
+  default     = "sancionafleet.fexia.es"
 }
 
 variable "ec2_public_ip" {

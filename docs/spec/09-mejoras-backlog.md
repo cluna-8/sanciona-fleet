@@ -10,6 +10,14 @@ requisito afectado (RF/RS de `SPEC.md`), propone un fix y estima esfuerzo.
 Sustituye y consolida los reportes de auditoría individuales (no se commitean
 por separado).
 
+> **Estado de ejecución (2026-09-20):** la **Fase 1** del
+> [`10-plan-hardening-v1.md`](10-plan-hardening-v1.md) (rama
+> `fix/hardening-v1-fase1`, commit `19451f1`) resolvió **C-3, A-1, A-4, M-8,
+> M-10, M-11 y B-4** (✅) y reevaluó **M-3 y B-7** como **falsos positivos**
+> (sin cambio). El resto sigue ⬜ pendiente, en su mayoría a la espera de
+> puerta humana o `apply` de terraform (Fase 2). Los contadores de más abajo
+> reflejan este estado.
+
 ## Convenciones
 
 - **Severidad:** CRÍTICA (bloquea v1 / riesgo legal o de seguridad inminente) ·
@@ -17,29 +25,28 @@ por separado).
   feature parcial) · BAJA (pule, v2).
 - **Dimensiones:** 🔒 seguridad · 🧬 código · 📋 funcional · 🛠️ infra/ops.
 - **Esfuerzo:** S (<½ día) · M (1–2 días) · L (>2 días).
-- **Estado:** ⬜ pendiente · 🟡 en curso · ✅ hecho. Salvo GAP-1 (bucket, ✅) todo
-  está ⬜.
+- **Estado:** ⬜ pendiente · 🟡 en curso · ✅ hecho · ❌ falso positivo (sin
+  cambio). GAP-1 (bucket) ✅; Fase 1 del plan 10 ✅ (7 hallazgos); M-3 y B-7 ❌.
 
 ---
 
 ## Resumen ejecutivo
 
-| Severidad | Cantidad | Bloquea v1 |
-|---|---:|---|
-| CRÍTICA | 4 | sí (3 de seguridad/función + 1 legal) |
-| ALTA | 13 | varias |
-| MEDIA | 14 | no |
-| BAJA | 12 | no |
+| Severidad | Total | Hecho (✅) | Falso positivo (❌) | Pendiente (⬜) | Bloquea v1 |
+|---|---:|---:|---:|---:|---|
+| CRÍTICA | 4 | 1 (C-3) | 0 | 3 | sí (C-1, C-2, C-4) |
+| ALTA | 13 | 2 (A-1, A-4) | 0 | 11 | varias |
+| MEDIA | 14 | 3 (M-8, M-10, M-11) | 1 (M-3) | 10 | no |
+| BAJA | 12 | 1 (B-4) | 1 (B-7) | 10 | no |
 
-**Las 4 CRÍTICAS**, en orden de ataque:
+**Avance Fase 1 (plan 10):** 7 de 43 hallazgos resueltos + 2 reevaluados. Quedan
+**3 CRÍTICAS** que bloquean v1:
 
-1. **CU-07 alta autoservicio insegura** — endpoint público con `service_role`,
-   sin captcha, sin verificación de correo, password devuelta al navegador y
-   enviada en claro, sin cobro. 0/4 criterios de aceptación de CU-07 cumplidos.
-2. **SSH abierto al mundo (`0.0.0.0/0`)** en el security group de prod.
-3. **Alta manual (CU-02) sin botón submit** — el formulario no se puede enviar;
-   RF-ALTA-2 roto. Bug heredado de Lovable, presente en ambos.
-4. **Festivos no implementados (RF-PLAZO-5)** — sólo 9 festivos nacionales
+1. **CU-07 alta autoservicio insegura** (C-1) — endpoint público con
+   `service_role`, sin captcha, sin verificación de correo, password devuelta
+   al navegador y enviada en claro, sin cobro. 0/4 criterios de CU-07.
+2. **SSH abierto al mundo (`0.0.0.0/0`)** (C-2) — security group de prod.
+3. **Festivos no implementados (RF-PLAZO-5)** (C-4) — sólo 9 festivos nacionales
    fijos; sin Semana Santa, autonómicos ni locales. Bloqueante legal.
 
 Lo demás es deuda de refactor (motor de plazos duplicado, casts `as never`,
@@ -81,8 +88,10 @@ flota). La IA, los KPIs del dashboard y la prevención **son reales, no mocks**.
   eliminar SSH y usar Session Manager / SSM). `terraform plan/apply`.
 - **Esfuerzo:** S (cambio terraform + apply).
 
-### C-3 · Alta manual (CU-02) sin botón submit — RF-ALTA-2 roto 🧬📋
+### C-3 · Alta manual (CU-02) sin botón submit — RF-ALTA-2 roto ✅ 🧬📋
 - **Afecta:** RF-ALTA-2, CU-02
+- **Estado:** ✅ **Hecho (Fase 1, commit `19451f1`).** Añadido botón
+  `type="submit"` e `<input type="file">` para adjuntar la notificación.
 - **Dónde:** `apps/bff-web/src/routes/_authenticated/sanciones.nueva.tsx:109-248`
 - **Qué falla:** el `<form onSubmit>` llama a `crear.mutate`, pero **no existe
   ningún `<Button type="submit">`** dentro del form. El único botón es el de
@@ -113,8 +122,12 @@ flota). La IA, los KPIs del dashboard y la prevención **son reales, no mocks**.
 
 ## ALTAS
 
-### A-1 · Consultas de expediente sin filtro `organization_id` (RS-2) 🔒📋
+### A-1 · Consultas de expediente sin filtro `organization_id` (RS-2) ✅ 🔒📋
 - **Afecta:** RS-2 (defense-in-depth)
+- **Estado:** ✅ **Hecho (Fase 1, commit `19451f1`).** Filtro
+  `.eq("organization_id", orgId)` (orgId opcional → retrocompatible) en las 4
+  consultas; el update de estado también filtra por org. `queries.ts` y
+  `sanciones.$id.tsx` pasan `orgId`. RLS ya protegía; esto es defense-in-depth.
 - **Dónde:** `apps/bff-web/src/features/expedientes/api/client.ts:17-57`
   (`fetchSancion`, `fetchActuaciones`, `fetchComentarios`,
   `cambiarEstadoSancion`)
@@ -149,8 +162,10 @@ flota). La IA, los KPIs del dashboard y la prevención **son reales, no mocks**.
   D-4/D-5), backoff exponencial en 429, log de `usage` para facturación.
 - **Esfuerzo:** M.
 
-### A-4 · `sanction_actions.insert` fire-and-forget — auditoría silenciosa 🧬
+### A-4 · `sanction_actions.insert` fire-and-forget — auditoría silenciosa ✅ 🧬
 - **Afecta:** trazabilidad regulatoria
+- **Estado:** ✅ **Hecho (Fase 1, commit `19451f1`).** Los 3 inserts de
+  auditoría ahora chequean `error` y hacen `throw` (`if (eAudit) throw eAudit`).
 - **Dónde:** `apps/bff-web/src/features/expedientes/api/client.ts:58-64`
   (`cambiarEstadoSancion`); `apps/bff-web/src/features/borradores/api/client.ts:88-94,116-122`
   (`guardarNuevaVersion`, `cambiarEstadoBorrador`)
@@ -271,14 +286,14 @@ flota). La IA, los KPIs del dashboard y la prevención **son reales, no mocks**.
   solo uso); confirmar `EMAIL_FROM` con dominio propio.
 - **Esfuerzo:** M.
 
-### M-3 · `recommended_action` calculado pero no mostrado (RF-ANALISIS-3) 📋
+### M-3 · `recommended_action` calculado pero no mostrado (RF-ANALISIS-3) ❌ 📋
+- **Estado:** ❌ **Falso positivo (reevaluado en Fase 1).** `panel-analisis.tsx:202-220`
+  **ya renderiza** `analisis.recommendation` con cabecera "Acción recomendada",
+  rationale y próximo paso. El auditor grepó el nombre de columna
+  `recommended_action`, pero el contrato lo expone como `recommendation`. Sin
+  cambio.
 - **Dónde:** `apps/bff-web/src/lib/expediente.functions.ts:547`;
   `components/panel-analisis.tsx`
-- **Qué falla:** el análisis IA calcula y persiste `recommended_action`, pero
-  no se renderiza en `panel-analisis.tsx` ni `sanciones.$id.tsx` (sólo el
-  semáforo).
-- **Fix:** renderizar `analisis.recommended_action` en el panel.
-- **Esfuerzo:** S.
 
 ### M-4 · `/documentos` no permite subir (RF-DOC-1) 📋
 - **Dónde:** `apps/bff-web/src/routes/_authenticated/documentos.tsx`
@@ -311,7 +326,9 @@ flota). La IA, los KPIs del dashboard y la prevención **son reales, no mocks**.
   `reportError`; chequear los `error` de cada paso.
 - **Esfuerzo:** S.
 
-### M-8 · `enlaceDescarga` descarta el error de Storage 🧬
+### M-8 · `enlaceDescarga` descarta el error de Storage ✅ 🧬
+- **Estado:** ✅ **Hecho (Fase 1, commit `19451f1`).** Loguea el error de
+  Storage (mensaje + ruta) antes de retornar null.
 - **Dónde:** `apps/bff-web/src/features/documentos/api/client.ts:56-60`
 - **Qué falla:** `if (error || !data?.signedUrl) return null;` descarta el
   error (RLS, path, expiración) sin log.
@@ -330,7 +347,10 @@ flota). La IA, los KPIs del dashboard y la prevención **son reales, no mocks**.
   `@sanciona/contracts`.
 - **Esfuerzo:** M.
 
-### M-10 · QueryClient sin `defaultOptions`; `defaultPreloadStaleTime: 0` 🧬
+### M-10 · QueryClient sin `defaultOptions`; `defaultPreloadStaleTime: 0` ✅ 🧬
+- **Estado:** ✅ **Hecho (Fase 1, commit `19451f1`).** `QueryClient` con
+  `staleTime: 30_000`, `refetchOnWindowFocus: false`, `retry: 1` y
+  `defaultPreloadStaleTime: 30_000`.
 - **Dónde:** `apps/bff-web/src/router.tsx:6-11`
 - **Qué falla:** sin `staleTime` global → cada mount refetchea;
   `defaultPreloadStaleTime: 0` anula el preload. Sólo `organizacion` pone
@@ -340,7 +360,10 @@ flota). La IA, los KPIs del dashboard y la prevención **son reales, no mocks**.
   a 30_000. Ajustar por query.
 - **Esfuerzo:** S.
 
-### M-11 · Botones de icono sin `aria-label` (a11y) 🧬
+### M-11 · Botones de icono sin `aria-label` (a11y) ✅ 🧬
+- **Estado:** ✅ **Hecho (Fase 1, commit `19451f1`).** `aria-label` en los
+  chevrons del calendario y en el botón de eliminar invitación, con
+  confirmación antes de eliminar.
 - **Dónde:** `apps/bff-web/src/routes/_authenticated/calendario.tsx:85,88`;
   `usuarios.tsx:256-261`
 - **Qué falla:** botones `<ChevronLeft/>`/`<ChevronRight/>` y `<Trash2/>` sin
@@ -384,10 +407,10 @@ flota). La IA, los KPIs del dashboard y la prevención **son reales, no mocks**.
 | B-1 | `<Label>` sin `htmlFor`/asociación | `sanciones.nueva.tsx:263-269`; `alta-documento.tsx:390,506,545,561` | `id` al input + `htmlFor` al Label | S |
 | B-2 | `<th>` sin `scope="col"`, tablas sin `<caption>` | múltiples `routes/_authenticated/*` | `scope` + caption | S |
 | B-3 | `src/lib/fleet.ts` shim `@deprecated` (22 consumidores) | `src/lib/fleet.ts:1` | migrar importadores a `@sanciona/contracts` / `@/shared/lib/formato` | M |
-| B-4 | `useCambiarEstado` no invalida `analisis`/`plazos` | `features/expedientes/api/mutations.ts:24-28` | invalidar `analisisKeys.deSancion(id)`, `plazosKeys.deSancion(id)` | S |
+| B-4 | ✅ `useCambiarEstado` no invalida `analisis`/`plazos` | `features/expedientes/api/mutations.ts:24-28` | invalidar `analisisKeys.deSancion(id)`, `plazosKeys.deSancion(id)` — **hecho Fase 1** | S |
 | B-5 | Sin `manualChunks` para vendors | `vite.config.ts` | `@tanstack/*`, `@supabase/supabase-js` en chunk estable | S |
 | B-6 | Sin diff real entre versiones (RF-BORRADOR-5) | `borradores.$id.tsx:142,208-216` | lib `diff` | M |
-| B-7 | "Restaurar" no guarda (RF-BORRADOR-6) | `borradores.$id.tsx:222` | mutación que persista como nueva versión | S |
+| B-7 | ❌ "Restaurar" no guarda (RF-BORRADOR-6) | `borradores.$id.tsx:222` | **falso positivo:** el botón dice "Restaurar este texto en el editor" y hace eso (carga el texto para editar y guardar versión) | S |
 | B-8 | `sanction_outcomes` vacío, sin analítica (RF-INF-2) | sin UI | punto de escritura al resolver + analítica | L |
 | B-9 | `document_access_logs` sin log (RF-DOC-2) | sin UI | INSERT al descargar/ver | S |
 | B-10 | Integraciones DGT/DIR3 (sin RF) | `integration_endpoints` vacía | definir RF + clientes | L |
@@ -422,20 +445,28 @@ Verificado por las 4 auditorías — destacar para no regredir:
 
 ## Plan de ataque sugerido
 
-1. **Quick wins de seguridad (S):** C-2 (SSH), A-1 (org_id), A-4 (auditoría),
-   A-12 (SecureString). Un PR, un apply terraform.
-2. **Arreglar CU-02 (S):** C-3 (botón submit) — desbloquea el alta manual.
-3. **Endurecer CU-07 (L):** C-1 — mientras tanto, desactivar "Contratar" en
-   prod o proteger la ruta.
-4. **Festivos (L):** C-4 — puerta jurídica; paralelo a lo demás.
-5. **Refactor plazos (M):** A-5 + A-6 + B-3 — una vez, elimina la deriva.
-6. **Rendimiento flota (M):** A-8 + A-9 + M-12.
-7. **Features parciales (M):** M-1 (PDF/docx), M-2 (invitaciones), M-3
-   (recommended_action), M-4 (upload documentos).
-8. **Calidad (M):** M-9 (casts), M-10 (QueryClient), A-2 (Zod), A-3 (rate
-   limit IA).
-9. **Ops (M):** A-10 (E2E en CI), A-11 (backups), A-13 (Sentry/uptime).
-10. **BAJAS:** backlog v2.
+> **Fase 1 (pasos 1–2 parcial + calidad/quick wins) ya ejecutada** — ver
+> [`10-plan-hardening-v1.md`](10-plan-hardening-v1.md), rama
+> `fix/hardening-v1-fase1`, commit `19451f1`. Hechos: C-3, A-1, A-4, M-8, M-10,
+> M-11, B-4. Falsos positivos: M-3, B-7. Lo pendiente:
 
-Relacionado: `08-paridad-lovable.md` (GAPs heredados), `07-plan-de-pruebas.md`
-(puertas), `05-trazabilidad.md` (estado por RF).
+1. ~~**Quick wins de seguridad (S):** C-2 (SSH), A-1 (org_id), A-4 (auditoría),
+   A-12 (SecureString).~~ **A-1 y A-4 ✅ hechos.** C-2 y A-12 siguen pendientes
+   — son `apply` de terraform en prod, **necesitan tu autorización explícita**.
+2. ~~**Arreglar CU-02 (S):** C-3 (botón submit)~~ ✅ **hecho** — alta manual
+   operativa.
+3. **Endurecer CU-07 (L):** C-1 — mientras tanto, desactivar "Contratar" en
+   prod o proteger la ruta. **Puerta de producto/precios.**
+4. **Festivos (L):** C-4 — **puerta jurídica**; paralelo a lo demás.
+5. **Refactor plazos (M):** A-5 + A-6 + B-3 — una vez, elimina la deriva. Hacer
+   con E2E CU-03 verde cubriéndolo.
+6. **Rendimiento flota (M):** A-8 + A-9 + M-12.
+7. **Features parciales (M):** M-1 (PDF/docx), M-2 (invitaciones), M-4 (upload
+   documentos). (M-3 ❌ falso positivo.)
+8. **Calidad (M):** M-9 (casts), A-2 (Zod), A-3 (rate limit IA). (M-10 ✅ hecho.)
+9. **Ops (M):** A-10 (E2E en CI), A-11 (backups), A-13 (Sentry/uptime).
+10. **BAJAS:** backlog v2. (B-4 ✅, B-7 ❌.)
+
+Relacionado: `10-plan-hardening-v1.md` (plan de ejecución + Fase 2),
+`08-paridad-lovable.md` (GAPs heredados), `07-plan-de-pruebas.md` (puertas),
+`05-trazabilidad.md` (estado por RF).

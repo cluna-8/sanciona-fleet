@@ -23,7 +23,7 @@ const LINEAS = [
 const esc = (s: string) => s.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
 
 // Content stream: primera línea en (50, 800), luego saltos de -18
-let y = 800;
+const y = 800;
 const contenido =
   "BT /F1 13 Tf 50 " +
   y +
@@ -63,4 +63,8 @@ pdf += xref;
 pdf += `trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF\n`;
 
 writeFileSync("e2e/fixtures/sancion-ejemplo.pdf", Buffer.from(pdf, "latin1"));
-console.log("generado e2e/fixtures/sancion-ejemplo.pdf", Buffer.from(pdf, "latin1").length, "bytes");
+console.log(
+  "generado e2e/fixtures/sancion-ejemplo.pdf",
+  Buffer.from(pdf, "latin1").length,
+  "bytes",
+);

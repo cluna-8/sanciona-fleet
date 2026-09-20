@@ -19,7 +19,10 @@ test("informes: página renderiza + botones CSV presentes (paridad)", async ({ p
   await expect(csv).toBeVisible({ timeout: 10000 });
 
   if (await csv.isEnabled()) {
-    const [download] = await Promise.all([page.waitForEvent("download", { timeout: 15000 }), csv.click()]);
+    const [download] = await Promise.all([
+      page.waitForEvent("download", { timeout: 15000 }),
+      csv.click(),
+    ]);
     expect(download.suggestedFilename()).toMatch(/\.csv$/);
   } else {
     // Estado vacío: paridad OK (botón presente, lógica de disable correcta)
@@ -50,5 +53,7 @@ test("calendario: vista mensual de plazos renderiza", async ({ page }) => {
 test("prevención: análisis de patrones", async ({ page }) => {
   await page.goto("/prevencion");
   await expect(page.getByRole("link", { name: "Sanciones" })).toBeVisible({ timeout: 15000 });
-  await expect(page.getByText(/patrones|recomendaciones|categor/i).first()).toBeVisible({ timeout: 10000 });
+  await expect(page.getByText(/patrones|recomendaciones|categor/i).first()).toBeVisible({
+    timeout: 10000,
+  });
 });

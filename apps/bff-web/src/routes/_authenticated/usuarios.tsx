@@ -254,7 +254,12 @@ function Invitaciones({ orgId }: { orgId: string }) {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => eliminar.mutate(i.id)}
+                      aria-label={`Eliminar invitación de ${i.email}`}
+                      onClick={() => {
+                        if (window.confirm(`¿Eliminar la invitación de ${i.email}?`)) {
+                          eliminar.mutate(i.id);
+                        }
+                      }}
                       disabled={eliminar.isPending}
                     >
                       <Trash2 className="h-4 w-4" />

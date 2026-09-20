@@ -51,10 +51,10 @@ function FichaSancion() {
   const gestor = puedeGestionar(sesion?.role);
   const [comentario, setComentario] = useState("");
 
-  const { data: sancion, isLoading } = useSancion(id);
+  const { data: sancion, isLoading } = useSancion(id, orgId);
   const { data: documentos } = useDocumentosSancion(id);
-  const { data: actuaciones } = useActuaciones(id);
-  const { data: comentarios } = useComentarios(id);
+  const { data: actuaciones } = useActuaciones(id, orgId);
+  const { data: comentarios } = useComentarios(id, orgId);
 
   const cambiarEstado = useCambiarEstado(orgId, sesion?.userId, id);
   const enviarCambioEstado = (nuevo: string) => {

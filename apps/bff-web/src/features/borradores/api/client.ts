@@ -85,13 +85,14 @@ export async function guardarNuevaVersion(datos: {
     .eq("id", datos.draftId);
   if (e2) throw e2;
 
-  await supabase.from("sanction_actions").insert({
+  const { error: eAudit } = await supabase.from("sanction_actions").insert({
     organization_id: datos.organizationId,
     sanction_id: datos.sanctionId,
     action_type: "Cambio de estado",
     description: `Nueva versión ${datos.version} del escrito «${datos.draftTitle}».`,
     performed_by: datos.userId,
   } as never);
+  if (eAudit) throw eAudit;
 }
 
 export async function cambiarEstadoBorrador(datos: {
@@ -113,11 +114,12 @@ export async function cambiarEstadoBorrador(datos: {
     .eq("id", datos.draftId);
   if (error) throw error;
 
-  await supabase.from("sanction_actions").insert({
+  const { error: eAudit } = await supabase.from("sanction_actions").insert({
     organization_id: datos.organizationId,
     sanction_id: datos.sanctionId,
     action_type: "Cambio de estado",
     description: `Escrito «${datos.draftTitle}» marcado como ${datos.estado.toLowerCase()}.`,
     performed_by: datos.userId,
   } as never);
+  if (eAudit) throw eAudit;
 }

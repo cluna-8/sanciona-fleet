@@ -37,7 +37,9 @@ test("CU-01: subir PDF, extraer con IA y crear expediente", async ({ page }) => 
   await page.locator('input[type="file"]').setInputFiles(pdf);
 
   // El archivo queda seleccionado y el botón de procesar se habilita
-  await expect(page.getByRole("button", { name: "Procesar documento" })).toBeEnabled({ timeout: 10000 });
+  await expect(page.getByRole("button", { name: "Procesar documento" })).toBeEnabled({
+    timeout: 10000,
+  });
   await page.getByRole("button", { name: "Procesar documento" }).click();
 
   // Esperar a que la extracción termine y aparezca la revisión (paso 2).
@@ -60,5 +62,7 @@ test("CU-01: subir PDF, extraer con IA y crear expediente", async ({ page }) => 
   expect(sanctionId).toBeTruthy();
 
   // El detalle renderiza (cabecera del expediente / historial)
-  await expect(page.getByText(/historial de actuaciones|actuaciones|expediente/i).first()).toBeVisible({ timeout: 15000 });
+  await expect(
+    page.getByText(/historial de actuaciones|actuaciones|expediente/i).first(),
+  ).toBeVisible({ timeout: 15000 });
 });

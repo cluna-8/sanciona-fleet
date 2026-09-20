@@ -16,6 +16,9 @@ const SUPA_URL = process.env.SUPABASE_URL!;
 const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const PUBLISHABLE = process.env.SUPABASE_PUBLISHABLE_KEY!;
 
+/** Fila genérica de PostgREST (siempre con id). */
+type Fila = { id: string; [key: string]: unknown };
+
 /** ID único por run para los datos de prueba (evita colisiones). */
 export function uid(prefix: string): string {
   const ts = Date.now().toString(36);
@@ -42,7 +45,7 @@ async function adminFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 export async function crearVehiculo(matricula: string): Promise<string> {
-  const rows = await adminFetch<any[]>("/rest/v1/vehicles", {
+  const rows = await adminFetch<Fila[]>("/rest/v1/vehicles", {
     method: "POST",
     headers: { Prefer: "return=representation" },
     body: JSON.stringify({
@@ -58,7 +61,7 @@ export async function crearVehiculo(matricula: string): Promise<string> {
 }
 
 export async function crearConductor(nombre: string, dni: string): Promise<string> {
-  const rows = await adminFetch<any[]>("/rest/v1/drivers", {
+  const rows = await adminFetch<Fila[]>("/rest/v1/drivers", {
     method: "POST",
     headers: { Prefer: "return=representation" },
     body: JSON.stringify({
@@ -82,7 +85,7 @@ export interface SanctionSeed {
 }
 
 export async function crearSancion(seed: SanctionSeed): Promise<string> {
-  const rows = await adminFetch<any[]>("/rest/v1/sanctions", {
+  const rows = await adminFetch<Fila[]>("/rest/v1/sanctions", {
     method: "POST",
     headers: { Prefer: "return=representation" },
     body: JSON.stringify({
@@ -116,14 +119,22 @@ export async function borrarConductor(id: string): Promise<void> {
 }
 
 /** Busca el id de una fila por un campo único (service_role). */
-export async function buscarId(tabla: string, campo: string, valor: string): Promise<string | null> {
-  const rows = await adminFetch<any[]>(`/rest/v1/${tabla}?${campo}=eq.${encodeURIComponent(valor)}&select=id`);
+export async function buscarId(
+  tabla: string,
+  campo: string,
+  valor: string,
+): Promise<string | null> {
+  const rows = await adminFetch<Fila[]>(
+    `/rest/v1/${tabla}?${campo}=eq.${encodeURIComponent(valor)}&select=id`,
+  );
   return rows[0]?.id ?? null;
 }
 
 /** Borra filas por campo (service_role). Para cleanup de datos de prueba. */
 export async function borrarPor(tabla: string, campo: string, valor: string): Promise<void> {
-  await adminFetch(`/rest/v1/${tabla}?${campo}=eq.${encodeURIComponent(valor)}`, { method: "DELETE" });
+  await adminFetch(`/rest/v1/${tabla}?${campo}=eq.${encodeURIComponent(valor)}`, {
+    method: "DELETE",
+  });
 }
 
 /** Lee el access_token del storageState (localStorage de Supabase) para llamadas RLS-scoped. */
@@ -145,10 +156,7 @@ export async function bearerDeStorage(): Promise<string> {
 }
 
 /** Query PostgREST con el bearer del usuario (RLS-scoped). Devuelve las filas. */
-export async function queryComoUsuario<T = any>(
-  bearer: string,
-  path: string,
-): Promise<T> {
+export async function queryComoUsuario<T = unknown>(bearer: string, path: string): Promise<T> {
   const res = await fetch(`${SUPA_URL}${path}`, {
     headers: {
       apikey: PUBLISHABLE,

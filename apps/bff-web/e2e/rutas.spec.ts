@@ -30,7 +30,9 @@ for (const { to, clave } of RUTAS) {
     // El AppShell renderizó: el link "Sanciones" del sidebar está visible
     // (excepto en /tutorial que puede no tener AppShell — ahí validamos título)
     if (to === "/tutorial") {
-      await expect(page.getByText(/tutorial|onboarding|paso/i).first()).toBeVisible({ timeout: 15000 });
+      await expect(page.getByText(/tutorial|onboarding|paso/i).first()).toBeVisible({
+        timeout: 15000,
+      });
     } else {
       await expect(page.getByRole("link", { name: "Sanciones" })).toBeVisible({ timeout: 15000 });
     }

@@ -14,7 +14,9 @@ setup("login como cristian@sanciona-fleet.com", async ({ page }) => {
   // Sin env, fallar explícitamente — nunca hardcodear credenciales en el repo.
   const password = process.env.E2E_PASSWORD;
   if (!password) {
-    throw new Error("E2E_PASSWORD no definido en el entorno. Usa scripts/run-e2e.sh o exporta E2E_PASSWORD manualmente.");
+    throw new Error(
+      "E2E_PASSWORD no definido en el entorno. Usa scripts/run-e2e.sh o exporta E2E_PASSWORD manualmente.",
+    );
   }
 
   await page.goto("/");

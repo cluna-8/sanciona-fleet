@@ -30,20 +30,26 @@ test.describe.serial("expediente: plazos → análisis → borrador", () => {
   test("CU-03: recalcular plazos (deadlines-service)", async ({ page }) => {
     test.setTimeout(90_000);
     await page.goto(`/sanciones/${sanctionId}`);
-    await expect(page.getByRole("main").getByText("Plazos", { exact: true })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole("main").getByText("Plazos", { exact: true })).toBeVisible({
+      timeout: 15000,
+    });
 
     // Estado inicial: sin plazos (sembrado sin pasar por crearExpedienteDesdeExtraccion)
     await expect(page.getByText("Sin plazos calculados.")).toBeVisible({ timeout: 10000 });
 
     await page.getByRole("button", { name: "Recalcular" }).click();
     // Tras recalc, aparece al menos un plazo con su tipo
-    await expect(page.getByText(/Pago con reducción|Alegaciones|Identificación del conductor|Recurso/).first()).toBeVisible({ timeout: 30_000 });
+    await expect(
+      page.getByText(/Pago con reducción|Alegaciones|Identificación del conductor|Recurso/).first(),
+    ).toBeVisible({ timeout: 30_000 });
   });
 
   test("CU-04: análisis con IA (OpenRouter, semáforo)", async ({ page }) => {
     test.setTimeout(120_000);
     await page.goto(`/sanciones/${sanctionId}`);
-    await expect(page.getByRole("main").getByText("Plazos", { exact: true })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole("main").getByText("Plazos", { exact: true })).toBeVisible({
+      timeout: 15000,
+    });
 
     const btn = page.getByRole("button", { name: /Iniciar análisis|Repetir análisis/ });
     await expect(btn).toBeVisible({ timeout: 10000 });
@@ -56,7 +62,9 @@ test.describe.serial("expediente: plazos → análisis → borrador", () => {
   test("CU-05: generar borrador, versionar y exportar", async ({ page }) => {
     test.setTimeout(120_000);
     await page.goto(`/sanciones/${sanctionId}`);
-    await expect(page.getByRole("main").getByText("Plazos", { exact: true })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole("main").getByText("Plazos", { exact: true })).toBeVisible({
+      timeout: 15000,
+    });
 
     await page.getByRole("button", { name: "Preparar alegaciones" }).click();
 
@@ -68,7 +76,9 @@ test.describe.serial("expediente: plazos → análisis → borrador", () => {
     await page.waitForURL(/\/borradores\/[0-9a-f-]{36}/, { timeout: 15_000 });
 
     // El editor renderiza: textarea editable, guardar versión, exportar PDF y .doc
-    await expect(page.getByRole("button", { name: "Guardar versión" })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole("button", { name: "Guardar versión" })).toBeVisible({
+      timeout: 15000,
+    });
     await expect(page.getByRole("button", { name: /Exportar a PDF/ })).toBeVisible();
     await expect(page.getByRole("button", { name: /Descargar documento editable/ })).toBeVisible();
     await expect(page.getByText("Versión 1")).toBeVisible();

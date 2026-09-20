@@ -55,7 +55,17 @@ export async function registrarDocumento(datos: NuevoDocumento): Promise<void> {
 /** Enlace de descarga temporal (60 s). Devuelve null si Storage falla. */
 export async function enlaceDescarga(ruta: string): Promise<string | null> {
   const { data, error } = await supabase.storage.from(BUCKET_DOCUMENTOS).createSignedUrl(ruta, 60);
-  if (error || !data?.signedUrl) return null;
+  if (error) {
+    console.error("[documentos] enlaceDescarga: fallo generando signedUrl", {
+      ruta,
+      message: error.message,
+    });
+    return null;
+  }
+  if (!data?.signedUrl) {
+    console.error("[documentos] enlaceDescarga: respuesta sin signedUrl", { ruta });
+    return null;
+  }
   return data.signedUrl;
 }
 

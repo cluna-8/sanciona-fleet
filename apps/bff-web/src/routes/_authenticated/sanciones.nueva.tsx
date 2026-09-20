@@ -243,7 +243,18 @@ function NuevaSancion() {
                   </SelectContent>
                 </Select>
               </Campo>
+              <Campo label="Documento de notificación (opcional)">
+                <Input
+                  type="file"
+                  accept="application/pdf,image/png,image/jpeg"
+                  onChange={(e) => setArchivo(e.target.files?.[0] ?? null)}
+                />
+              </Campo>
             </div>
+            <Button type="submit" disabled={crear.isPending} className="w-full sm:w-auto">
+              {crear.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Registrar expediente
+            </Button>
           </div>
         </form>
       }

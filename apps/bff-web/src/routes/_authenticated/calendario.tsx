@@ -82,10 +82,20 @@ function Calendario() {
                 {MESES[mes]} {anio}
               </h2>
               <div className="flex gap-2">
-                <Button variant="outline" size="icon" onClick={() => cambiarMes(-1)}>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  aria-label="Mes anterior"
+                  onClick={() => cambiarMes(-1)}
+                >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="icon" onClick={() => cambiarMes(1)}>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  aria-label="Mes siguiente"
+                  onClick={() => cambiarMes(1)}
+                >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>

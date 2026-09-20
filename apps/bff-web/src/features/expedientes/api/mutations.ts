@@ -25,6 +25,9 @@ export function useCambiarEstado(
       queryClient.invalidateQueries({ queryKey: expedientesKeys.detalle(id) });
       queryClient.invalidateQueries({ queryKey: expedientesKeys.actuaciones(id) });
       queryClient.invalidateQueries({ queryKey: expedientesKeys.lista(orgId) });
+      // Un cambio de estado puede afectar al análisis y a los plazos pendientes.
+      queryClient.invalidateQueries({ queryKey: ["analisis", id] });
+      queryClient.invalidateQueries({ queryKey: ["plazos", id] });
     },
   });
 }

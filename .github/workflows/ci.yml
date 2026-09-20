@@ -52,7 +52,7 @@ jobs:
       # El motor de plazos tiene consecuencia legal directa: si sus tests fallan,
       # no se despliega nada (SPEC.md §7.4).
       - name: Tests
-        run: bun test
+        run: bun run test
 
   # --- Despliegue (solo en push a main) -------------------------------------
   # Construye las dos imágenes, las sube a ECR y dispara el despliegue en la EC2

@@ -12,8 +12,12 @@ const DEMO_ORG = "11111111-1111-4111-8111-111111111111";
 
 test("CU-06: RLS sólo devuelve sanciones de la org del usuario", async () => {
   const bearer = await bearerDeStorage();
+  type FilaOrg = { id: string; organization_id: string };
 
-  const filas = await queryComoUsuario<any[]>(bearer, "/rest/v1/sanctions?select=id,organization_id");
+  const filas = await queryComoUsuario<FilaOrg[]>(
+    bearer,
+    "/rest/v1/sanctions?select=id,organization_id",
+  );
   expect(Array.isArray(filas)).toBeTruthy();
   // Ninguna fila pertenece a otra org
   for (const f of filas) {
@@ -21,14 +25,17 @@ test("CU-06: RLS sólo devuelve sanciones de la org del usuario", async () => {
   }
 
   // Acceso directo a la org demo -> RLS bloquea, lista vacía
-  const demo = await queryComoUsuario<any[]>(
+  const demo = await queryComoUsuario<{ id: string }[]>(
     bearer,
     `/rest/v1/sanctions?organization_id=eq.${DEMO_ORG}&select=id`,
   );
   expect(demo).toHaveLength(0);
 
   // Lo mismo con vehículos
-  const veh = await queryComoUsuario<any[]>(bearer, "/rest/v1/vehicles?select=id,organization_id");
+  const veh = await queryComoUsuario<FilaOrg[]>(
+    bearer,
+    "/rest/v1/vehicles?select=id,organization_id",
+  );
   for (const v of veh) {
     expect(v.organization_id).toBe(ORG_ID);
   }

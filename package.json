@@ -7,7 +7,7 @@
     "apps/*"
   ],
   "scripts": {
-    "test": "bun test",
+    "test": "bun test packages services apps/bff-web/src",
     "test:deadlines": "cd services/deadlines-service && bun test",
     "db:migrar": "bun run scripts/db/migrar.ts",
     "db:migrar:dry": "DRY_RUN=1 bun run scripts/db/migrar.ts"

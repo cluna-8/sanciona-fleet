@@ -27,7 +27,9 @@ test("CU-02: el alta manual NO tiene botón de enviar (bug de paridad)", async (
   // NO debe existir un botón de submit dentro del form manual.
   // El único botón "Entrar"/"Guardar" sería del diálogo de flota, no de este form.
   const formularios = page.locator('form:has(input[name="reference_number"])');
-  const botonesSubmit = formularios.locator('button[type="submit"], button:has-text("Guardar"), button:has-text("Registrar"), button:has-text("Crear")');
+  const botonesSubmit = formularios.locator(
+    'button[type="submit"], button:has-text("Guardar"), button:has-text("Registrar"), button:has-text("Crear")',
+  );
   await expect(botonesSubmit).toHaveCount(0);
 
   // Confirmación negativa: entrar a /sanciones y verificar que no aparece el expediente

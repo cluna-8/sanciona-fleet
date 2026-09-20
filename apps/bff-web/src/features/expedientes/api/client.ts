@@ -14,32 +14,35 @@ export async function fetchSanciones(orgId: string): Promise<Sancion[]> {
   return (data ?? []) as unknown as Sancion[];
 }
 
-export async function fetchSancion(id: string): Promise<Sancion | null> {
-  const { data, error } = await supabase
+export async function fetchSancion(id: string, orgId?: string): Promise<Sancion | null> {
+  let q = supabase
     .from("sanctions")
     .select("*, vehicles(registration_number), drivers(full_name)")
-    .eq("id", id)
-    .maybeSingle();
+    .eq("id", id);
+  if (orgId) q = q.eq("organization_id", orgId);
+  const { data, error } = await q.maybeSingle();
   if (error) throw error;
   return data as unknown as Sancion | null;
 }
 
-export async function fetchActuaciones(sanctionId: string): Promise<Actuacion[]> {
-  const { data, error } = await supabase
+export async function fetchActuaciones(sanctionId: string, orgId?: string): Promise<Actuacion[]> {
+  let q = supabase
     .from("sanction_actions")
     .select("id, action_type, description, created_at")
-    .eq("sanction_id", sanctionId)
-    .order("created_at", { ascending: false });
+    .eq("sanction_id", sanctionId);
+  if (orgId) q = q.eq("organization_id", orgId);
+  const { data, error } = await q.order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []) as Actuacion[];
 }
 
-export async function fetchComentarios(sanctionId: string): Promise<Comentario[]> {
-  const { data, error } = await supabase
+export async function fetchComentarios(sanctionId: string, orgId?: string): Promise<Comentario[]> {
+  let q = supabase
     .from("sanction_comments")
     .select("id, comment, created_at, created_by")
-    .eq("sanction_id", sanctionId)
-    .order("created_at", { ascending: false });
+    .eq("sanction_id", sanctionId);
+  if (orgId) q = q.eq("organization_id", orgId);
+  const { data, error } = await q.order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []) as unknown as Comentario[];
 }
@@ -53,15 +56,17 @@ export async function cambiarEstadoSancion(
   const { error } = await supabase
     .from("sanctions")
     .update({ status: nuevo } as never)
-    .eq("id", id);
+    .eq("id", id)
+    .eq("organization_id", orgId);
   if (error) throw error;
-  await supabase.from("sanction_actions").insert({
+  const { error: eAudit } = await supabase.from("sanction_actions").insert({
     organization_id: orgId,
     sanction_id: id,
     action_type: "Cambio de estado",
     description: `Estado actualizado a «${nuevo}».`,
     performed_by: userId,
   } as never);
+  if (eAudit) throw eAudit;
 }
 
 export async function añadirComentario(

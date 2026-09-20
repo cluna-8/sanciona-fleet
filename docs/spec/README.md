@@ -14,6 +14,8 @@ proyecto, léelos en el orden de la tabla.
 | 6 | [`05-trazabilidad.md`](05-trazabilidad.md) | ¿Qué está hecho, qué falta y dónde vive cada cosa? | Quieres saber el estado real del proyecto |
 | 6b | [`06-arquitectura-bff-web.md`](06-arquitectura-bff-web.md) | ¿Qué hace `apps/bff-web` y cómo está construido por dentro? | Vas a tocar el frontend, o quieres entenderlo sin leer código |
 | 6c | [`07-plan-de-pruebas.md`](07-plan-de-pruebas.md) | ¿Qué se prueba, cómo y qué falta por probar? | Vas a añadir o ejecutar pruebas |
+| 6d | [`08-paridad-lovable.md`](08-paridad-lovable.md) | ¿La app nueva hace lo mismo que el Lovable congelado? | Verificas que la migración no regredió |
+| 6e | [`09-mejoras-backlog.md`](09-mejoras-backlog.md) | ¿Qué se puede mejorar y en qué orden? | Vas a priorizar trabajo o decidir qué entra en v1 |
 | 7 | [`../adr/`](../adr/) | ¿Por qué se decidió así y no de otra forma? | Vas a cambiar una decisión estructural |
 | 8 | [`../legacy/INVENTARIO-AS-IS.md`](../legacy/INVENTARIO-AS-IS.md) | ¿Qué había antes y qué estaba roto? | Necesitas el contexto de una decisión |
 | 9 | [`../legacy/CAMBIOS-LOVABLE.md`](../legacy/CAMBIOS-LOVABLE.md) | ¿Qué se ha tocado en el prototipo desde la última vez? | Vuelves después de unos días |

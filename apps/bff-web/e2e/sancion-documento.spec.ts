@@ -27,6 +27,12 @@ test("CU-01: subir PDF, extraer con IA y crear expediente", async ({ page }) => 
   await page.goto("/sanciones/nueva");
   await expect(page.getByText("Alta manual del expediente")).toBeVisible({ timeout: 15000 });
 
+  // Esperar a que la sesión (orgId + userId) esté cargada antes de subir:
+  // el banner "Empresa activa:" sólo renderiza cuando sesion.organization
+  // está disponible (app-shell.tsx). Si clicamos antes, el mutate hace throw
+  // "Tu usuario no tiene una empresa activa asignada" sin llegar a Storage.
+  await expect(page.getByText("Empresa activa:")).toBeVisible({ timeout: 15000 });
+
   const pdf = resolve(__dirname, "fixtures/sancion-ejemplo.pdf");
   await page.locator('input[type="file"]').setInputFiles(pdf);
 

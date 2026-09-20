@@ -45,9 +45,10 @@ bash scripts/run-e2e.sh e2e/sancion-documento.spec.ts e2e/expediente.spec.ts \
 | `expediente.spec.ts` CU-03 | plazos (deadlines-service) | ✅ PASS | recalc → 3 plazos con tipo y fecha |
 | `expediente.spec.ts` CU-04 | análisis IA (OpenRouter) | ✅ PASS | semáforo + "Confianza: Alto" (6.0s) |
 | `expediente.spec.ts` CU-05 | borrador versionado + export | ✅ PASS | enlace /borradores/{id}, v1→v2, export |
-| `sancion-documento.spec.ts` | **CU-01** alta desde documento | ❌ BLOCKED | bucket Storage ausente (ver GAP-1) |
+| `sancion-documento.spec.ts` | **CU-01** alta desde documento | ✅ PASS | upload → extracción IA → revisión → crear (8.3s) |
 
-**Resumen:** 27 PASS, 0 FAIL, 1 BLOCKED (CU-01 por infra, no por código).
+**Resumen:** 28 PASS, 0 FAIL. (CU-04 análisis IA es ocasionalmente transient
+por la no-deterministicidad de OpenRouter; en re-ejecución pasa en ~6s.)
 
 ## Matriz de paridad feature-a-feature
 
@@ -64,7 +65,7 @@ Leyenda de veredicto:
 | Dashboard / Resumen | ✅ | ✅ | PARIDAD OK | rutas /dashboard | PASS |
 | Sanciones listado + filtro | ✅ | ✅ | PARIDAD OK | rutas /sanciones | PASS |
 | Detalle de expediente | ✅ | ✅ | PARIDAD OK | expediente | PASS |
-| **CU-01** Alta desde documento (PDF→IA→revisión→crear) | ✅ | ✅ código / ❌ prod | **GAP-1 (infra)** | sancion-documento | BLOCKED |
+| **CU-01** Alta desde documento (PDF→IA→revisión→crear) | ✅ | ✅ | PARIDAD OK | sancion-documento | PASS |
 | **CU-02** Alta manual | ⚠️ sin submit | ⚠️ sin submit | AMBOS-IGUAL-FALTA | sancion-manual | PASS (bug) |
 | **CU-03** Plazos (deadlines-service) | ✅ | ✅ | PARIDAD OK | expediente CU-03 | PASS |
 | **CU-04** Análisis IA (semáforo) | ✅ Gateway | ✅ OpenRouter | PARIDAD OK (proveedor distinto por diseño, ADR) | expediente CU-04 | PASS |
@@ -91,33 +92,38 @@ Leyenda de veredicto:
 
 ## GAPs y limitaciones
 
-### GAP-1 (bloqueante, infra — NO código) — Bucket Storage `sanction-documents` ausente en prod
+### GAP-1 (resuelto 2026-09-20) — Bucket Storage `sanction-documents` ausente en prod
 
-**Síntoma:** CU-01 sube el PDF → "Estado: No se ha podido subir el documento".
-La extracción IA no llega a ejecutarse.
+**Síntoma original:** CU-01 subía el PDF → "Estado: No se ha podido subir el
+documento". La extracción IA no llegaba a ejecutarse.
 
-**Causa raíz:** Las migraciones definen las **RLS policies** sobre
+**Causa raíz:** las migraciones definían las **RLS policies** sobre
 `storage.objects` para el bucket `sanction-documents`
 (`sanction_docs_read/insert/delete/update`, migraciones
 `20260825184159` y `20260826191508`) y se aplicaron a prod, pero **ninguna
-migración crea la fila del bucket** en `storage.buckets`. Verificado en prod:
-`GET /storage/v1/bucket/sanction-documents` → `404 NoSuchBucket`; la lista de
-buckets está vacía.
+migración creaba la fila del bucket** en `storage.buckets`. Verificado en prod
+antes del fix: `GET /storage/v1/bucket/sanction-documents` → `404 NoSuchBucket`.
 
-**Fix (pendiente autorización explícita del usuario):** crear el bucket
-privado en prod:
-- Opción A (Storage API):
-  `POST /storage/v1/bucket` con `{"name":"sanction-documents","public":false}`
-  usando la service role key.
-- Opción B (SQL):
-  `insert into storage.buckets (id, name, public) values ('sanction-documents','sanction-documents', false);`
-- Y **landar una migración** que lo cree (para que entornos futuros no
-  requieran paso manual). Las RLS policies ya están.
+**Fix aplicado (autorizado por el usuario):**
+1. Creado el bucket privado en prod vía Storage API
+   (`POST /storage/v1/bucket` `{"name":"sanction-documents","public":false}`
+   con service role key).
+2. Landada la migración `20260920015556_...sql` que hace
+   `insert into storage.buckets ... on conflict do nothing` (idempotente),
+   para que entornos futuros no requieran paso manual. Las RLS policies ya
+   estaban.
 
-El código de upload (`src/features/extraccion/api/client.ts`,
-`src/features/documentos/api/client.ts`) y el flujo IA son correctos — el
-bloqueo es puramente de provisioning del bucket. Tras crear el bucket, CU-01
-debería pasar (la IA ya funciona: CU-04 demostró OpenRouter operativo).
+**Verificación:** tras el fix, CU-01 PASS en prod (upload 200 → extractions
+201 → `procesarDocumento` OpenRouter gemini-2.5-flash → revisión → crear
+expediente → redirect al detalle, ~8s). El código de upload
+(`src/features/extraccion/api/client.ts`, `src/features/documentos/api/client.ts`)
+y el flujo IA eran correctos — el bloqueo era puramente de provisioning.
+
+> **Nota E2E:** el spec de CU-01 espera a que el banner "Empresa activa:" esté
+> visible antes de subir, para garantizar que `useSesion()` haya resuelto
+> `orgId`+`userId`. Sin ese wait, el mutate hace throw "Tu usuario no tiene
+> una empresa activa asignada" sin llegar a Storage (race condition de
+> render vs. carga de sesión).
 
 ### Limitaciones heredadas (AMBOS-IGUAL-FALTA, no bloquean paridad)
 
@@ -146,12 +152,10 @@ shadcn no usados.
 ## Conclusión
 
 `apps/bff-web` reproduce fielmente el prototipo de Lovable. La migración
-**no introdujo regresiones funcionales**: 27/28 specs PASS y el único
-bloqueado lo está por un **gap de provisioning de infra** (bucket Storage
-ausente), no por código. Las limitaciones restantes (CU-02 sin submit,
+**no introdujo regresiones funcionales**: **28/28 specs PASS** tras crear el
+bucket Storage (GAP-1 resuelto). Las limitaciones restantes (CU-02 sin submit,
 exports no reales, festivos, CU-07, email) son **heredadas de Lovable** y
 presentes en ambos — paridad neutra.
 
-**Para alcanzar paridad funcional completa** basta con:
-1. Crear el bucket `sanction-documents` en prod (GAP-1) → desbloquea CU-01.
-2. (Opcional, mejora) añadir botón submit al alta manual → arregla CU-02.
+**Mejora opcional** (no bloquea paridad): añadir botón submit al alta manual
+→ arregla CU-02 (bug heredado de Lovable, presente en ambos).

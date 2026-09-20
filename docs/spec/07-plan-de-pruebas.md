@@ -86,13 +86,14 @@ refactor (§1.6). La cobertura E2E es la puerta.
 
 **Estado (2026-09-20):** suite E2E Playwright landada en `apps/bff-web/e2e/`
 (11 specs) + `scripts/run-e2e.sh` (inyecta secretos SSM). Corrida contra **prod
-en vivo** `https://sancionafleet.fexia.es`: **27 PASS / 0 FAIL / 1 BLOCKED**.
-CU-03 ✅, CU-06 ✅; CU-04 (análisis IA real, OpenRouter) ✅; CU-05 (borrador
-versionado) ✅; CU-02 documenta bug heredado (sin botón submit, también en
-Lovable). **CU-01 bloqueado por GAP de infra** (bucket Storage
-`sanction-documents` ausente en prod — ver `docs/spec/08-paridad-lovable.md`
-GAP-1), no por código. Detalle y matriz de paridad en
-`docs/spec/08-paridad-lovable.md`.
+en vivo** `https://sancionafleet.fexia.es`: **28 PASS / 0 FAIL**.
+CU-01 (alta desde documento, IA real) ✅, CU-03 ✅, CU-06 ✅; CU-04 (análisis IA
+real, OpenRouter) ✅; CU-05 (borrador versionado) ✅; CU-02 documenta bug
+heredado (sin botón submit, también en Lovable). CU-04 es ocasionalmente
+transient por la no-deterministicidad de OpenRouter (en re-ejecución pasa en
+~6s). Detalle y matriz de paridad en `docs/spec/08-paridad-lovable.md`.
+(GAP-1 bucket Storage resuelto: creado en prod + migración
+`20260920015556`.)
 
 ---
 
@@ -151,13 +152,12 @@ Antes del primer cliente real, el plan exige:
   humana).
 - ⬜ Extracción/validación unitaria ampliada (RF-ALTA-3/4, RF-PLAZO-3).
 - ⬜ E2E Playwright de CU-01, CU-03, CU-06 contra Supabase de test.
-  - ✅ **Hecho (2026-09-20):** suite landada, CU-03 y CU-06 PASS en prod.
-    CU-01 bloqueado por bucket Storage ausente (GAP-1 infra, ver
-    `08-paridad-lovable.md`). Adicionalmente CU-04 (IA real) y CU-05 PASS.
+  - ✅ **Hecho (2026-09-20):** suite landada, CU-01, CU-03 y CU-06 PASS en
+    prod (28/28 specs). Adicionalmente CU-04 (IA real) y CU-05 PASS.
 - ⬜ Prueba de extracción con PDF real contra OpenRouter.
-  - ✅ **Hecho (2026-09-20):** CU-04 análisis IA real contra OpenRouter PASS
-    en prod (semáforo + confianza). La extracción de CU-01 queda pendiente
-    del bucket.
+  - ✅ **Hecho (2026-09-20):** CU-01 extracción IA real (gemini-2.5-flash)
+    PASS en prod; CU-04 análisis IA real (nova-lite-v1) PASS (semáforo +
+    confianza).
 - ⬜ Integración `bff-web → deadlines-service` (contrato).
   - ✅ **Hecho (2026-09-20):** CU-03 recalcular plazos PASS en prod (3 plazos
     con tipo y fecha vía deadlines-service).

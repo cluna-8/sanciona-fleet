@@ -13,6 +13,8 @@ import { bufferABase64, extraerJson } from "../json";
 import { normalizarAnalisis, normalizarCampos } from "../normalizar";
 import { SISTEMA_ANALISIS, SISTEMA_BORRADOR, SISTEMA_EXTRACCION, listarFuentes } from "../prompts";
 import {
+  REINTENTOS_POR_DEFECTO,
+  REINTENTO_TOPE_MS,
   TIMEOUT_POR_DEFECTO_MS,
   type ConfiguracionIA, type DocumentoEntrada, type PeticionAnalisis,
   type PeticionExtraccion, type PeticionRedaccion, type ProveedorIA,
@@ -31,7 +33,15 @@ export function documentoABloque(doc: DocumentoEntrada): Bloque {
     : { tipo: "documento", nombre: doc.nombre, mime: doc.mime, base64 };
 }
 
-type RespuestaCruda = { contenido: string; modelo: string };
+type RespuestaCruda = {
+  contenido: string;
+  modelo: string;
+  /** Uso informado por el proveedor, si existe (para el log de gasto). */
+  tokens?: { entrada: number; salida: number };
+};
+
+/** El 429 de un proveedor transitorio no debe marcar un expediente como roto. */
+const dormir = (ms: number) => new Promise((resolver) => setTimeout(resolver, ms));
 
 export abstract class ProveedorBase implements ProveedorIA {
   abstract readonly nombre: string;
@@ -49,6 +59,37 @@ export abstract class ProveedorBase implements ProveedorIA {
   }): Promise<RespuestaCruda>;
 
   /**
+   * `completar` con reintentos ante errores transitorios (A-3a): hasta
+   * `maxIntentosExtra` reintentos extra con backoff exponencial `baseMs·2^n`
+   * y jitter ±25 %, respetando un `Retry-After` del proveedor si es mayor.
+   *
+   * No se reintentan los códigos no reintentables (`sin_credito`,
+   * `no_autorizado`, `documento_invalido`…): reintentarlos solo quema cuota.
+   * Ninguna espera supera `REINTENTO_TOPE_MS`: un `Retry-After` enorme hace
+   * fallar YA con el mensaje amigable, en vez de colgar la petición.
+   */
+  private async completarConReintentos(opciones: {
+    modelo: string;
+    sistema: string;
+    bloques: Bloque[];
+    jsonEstricto: boolean;
+  }): Promise<RespuestaCruda> {
+    const { maxIntentosExtra, baseMs } = this.config.reintentos ?? REINTENTOS_POR_DEFECTO;
+    for (let intento = 0; ; intento++) {
+      try {
+        return await this.completar(opciones);
+      } catch (e) {
+        if (!(e instanceof ErrorIA) || !e.reintentable || intento >= maxIntentosExtra) throw e;
+        const backoff = baseMs * 2 ** intento;
+        const espera = Math.max(backoff, e.reintentarTrasMs ?? 0);
+        if (espera > REINTENTO_TOPE_MS) throw e;
+        const jitter = 1 + (Math.random() * 0.5 - 0.25); // ±25 %
+        await dormir(Math.round(espera * jitter));
+      }
+    }
+  }
+
+  /**
    * Puente temporal de la migración (ADR 0003): llamada cruda al modelo.
    * Delega en `completar`; los `bloques` llegan como `unknown` desde
    * `expediente.server.ts` y se devuelven al tipo interno. Retirar cuando los
@@ -60,7 +101,7 @@ export abstract class ProveedorBase implements ProveedorIA {
     bloques: ReadonlyArray<unknown>;
     jsonEstricto?: boolean;
   }): Promise<RespuestaCruda> {
-    return this.completar({
+    return this.completarConReintentos({
       modelo: opciones.modelo,
       sistema: opciones.sistema,
       bloques: opciones.bloques as Bloque[],
@@ -91,7 +132,7 @@ export abstract class ProveedorBase implements ProveedorIA {
       throw new ErrorIA("documento_invalido", "documento vacío");
     }
 
-    const { contenido, modelo } = await this.completar({
+    const { contenido, modelo } = await this.completarConReintentos({
       modelo: this.config.modeloExtraccion,
       sistema: SISTEMA_EXTRACCION,
       jsonEstricto: true,
@@ -124,7 +165,7 @@ export abstract class ProveedorBase implements ProveedorIA {
   }
 
   async analizar({ contexto, fuentes }: PeticionAnalisis): Promise<ResultadoAnalisis> {
-    const { contenido, modelo } = await this.completar({
+    const { contenido, modelo } = await this.completarConReintentos({
       modelo: this.config.modeloAnalisis,
       sistema: SISTEMA_ANALISIS,
       jsonEstricto: true,
@@ -143,7 +184,7 @@ export abstract class ProveedorBase implements ProveedorIA {
       .map((f) => `- ${f.norm}${f.article ? `, ${f.article}` : ""}${f.section ? ` (${f.section})` : ""}`)
       .join("\n");
 
-    const { contenido, modelo } = await this.completar({
+    const { contenido, modelo } = await this.completarConReintentos({
       modelo: this.config.modeloAnalisis,
       sistema: SISTEMA_BORRADOR,
       jsonEstricto: false,

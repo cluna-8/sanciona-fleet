@@ -23,7 +23,13 @@ import { ErrorIA } from "./errores";
 import { ProveedorAnthropic } from "./proveedores/anthropic";
 import { ProveedorGoogle } from "./proveedores/google";
 import { ProveedorOpenAICompatible } from "./proveedores/openai-compatible";
-import { PROVEEDORES, type ConfiguracionIA, type NombreProveedor, type ProveedorIA } from "./tipos";
+import {
+  PROVEEDORES,
+  REINTENTOS_POR_DEFECTO,
+  type ConfiguracionIA,
+  type NombreProveedor,
+  type ProveedorIA,
+} from "./tipos";
 
 /** URL base por defecto para OpenRouter. */
 const URL_OPENROUTER = "https://openrouter.ai/api/v1/chat/completions";
@@ -65,6 +71,10 @@ export type EntornoIA = {
   IA_MODELO_ANALISIS?: string | undefined;
   IA_URL_BASE?: string | undefined;
   IA_TIMEOUT_MS?: string | undefined;
+  /** Reintentos extra ante 429/transitorios (A-3a). */
+  IA_REINTENTOS_MAX?: string | undefined;
+  /** Base del backoff de reintentos, en ms (A-3a). */
+  IA_REINTENTO_BASE_MS?: string | undefined;
 };
 
 /**
@@ -86,6 +96,8 @@ export function crearProveedorDesdeEntorno(env: EntornoIA): ProveedorIA {
   }
 
   const timeout = Number(env.IA_TIMEOUT_MS);
+  const reintentosMax = Number(env.IA_REINTENTOS_MAX);
+  const reintentosBase = Number(env.IA_REINTENTO_BASE_MS);
 
   return crearProveedor({
     proveedor,
@@ -94,5 +106,15 @@ export function crearProveedorDesdeEntorno(env: EntornoIA): ProveedorIA {
     modeloAnalisis: env.IA_MODELO_ANALISIS ?? MODELO_POR_DEFECTO,
     ...(env.IA_URL_BASE ? { urlBase: env.IA_URL_BASE } : {}),
     ...(Number.isFinite(timeout) && timeout > 0 ? { timeoutMs: timeout } : {}),
+    reintentos: {
+      maxIntentosExtra:
+        Number.isFinite(reintentosMax) && reintentosMax >= 0
+          ? Math.floor(reintentosMax)
+          : REINTENTOS_POR_DEFECTO.maxIntentosExtra,
+      baseMs:
+        Number.isFinite(reintentosBase) && reintentosBase > 0
+          ? Math.round(reintentosBase)
+          : REINTENTOS_POR_DEFECTO.baseMs,
+    },
   });
 }

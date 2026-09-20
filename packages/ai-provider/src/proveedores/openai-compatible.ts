@@ -11,6 +11,17 @@ import { ProveedorBase, type Bloque } from "./base";
 
 const URL_OPENAI = "https://api.openai.com/v1/chat/completions";
 
+/**
+ * `Retry-After` en segundos (forma habitual en los 429). Las fechas HTTP que
+ * contempla la RFC se ignoran: el proveedor de referencia (OpenRouter) no las
+ * usa y esperar hasta una fecha concreta excede el tope de reintento.
+ */
+function msDeRetryAfter(valor: string | null): number | undefined {
+  if (!valor) return undefined;
+  const segundos = Number(valor);
+  return Number.isFinite(segundos) && segundos > 0 ? Math.round(segundos * 1000) : undefined;
+}
+
 type ContenidoOpenAI =
   | { type: "text"; text: string }
   | { type: "image_url"; image_url: { url: string } }
@@ -60,15 +71,36 @@ export class ProveedorOpenAICompatible extends ProveedorBase {
 
     if (!respuesta.ok) {
       const cuerpo = await respuesta.text().catch(() => "");
-      throw new ErrorIA(codigoDesdeStatus(respuesta.status), `${respuesta.status}: ${cuerpo.slice(0, 500)}`);
+      // En un 429 el proveedor dice cuánto esperar: la política de reintentos
+      // de ProveedorBase lo respeta si supera al backoff propio.
+      const reintentarTrasMs =
+        respuesta.status === 429 ? msDeRetryAfter(respuesta.headers.get("retry-after")) : undefined;
+      throw new ErrorIA(
+        codigoDesdeStatus(respuesta.status),
+        `${respuesta.status}: ${cuerpo.slice(0, 500)}`,
+        reintentarTrasMs,
+      );
     }
 
     const datos = (await respuesta.json()) as {
       choices?: Array<{ message?: { content?: string } }>;
       model?: string;
+      usage?: { prompt_tokens?: number; completion_tokens?: number };
     };
     const contenido = datos.choices?.[0]?.message?.content ?? "";
     if (!contenido) throw new ErrorIA("sin_contenido");
-    return { contenido, modelo: datos.model ?? o.modelo };
+    return {
+      contenido,
+      modelo: datos.model ?? o.modelo,
+      // Uso de tokens cuando el proveedor lo informa (para ai_usage_logs).
+      ...(typeof datos.usage?.prompt_tokens === "number"
+        ? {
+            tokens: {
+              entrada: datos.usage.prompt_tokens,
+              salida: datos.usage.completion_tokens ?? 0,
+            },
+          }
+        : {}),
+    };
   }
 }

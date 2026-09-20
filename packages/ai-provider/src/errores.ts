@@ -39,13 +39,20 @@ export class ErrorIA extends Error {
   readonly detalle: string | undefined;
   /** `true` si reintentar la misma petición puede funcionar. */
   readonly reintentable: boolean;
+  /**
+   * Retardo sugerido por el proveedor (`Retry-After`) en milisegundos, para
+   * que la política de reintentos lo respete en un 429. Opcional: solo lo
+   * rellenan los proveedores que leen la cabecera.
+   */
+  readonly reintentarTrasMs: number | undefined;
 
-  constructor(codigo: CodigoErrorIA, detalle?: string) {
+  constructor(codigo: CodigoErrorIA, detalle?: string, reintentarTrasMs?: number) {
     super(MENSAJES[codigo]);
     this.name = "ErrorIA";
     this.codigo = codigo;
     this.detalle = detalle;
     this.reintentable = codigo === "limite_peticiones" || codigo === "no_disponible";
+    this.reintentarTrasMs = reintentarTrasMs;
   }
 }
 

@@ -64,14 +64,41 @@ export interface ProveedorIA {
    * (que todavía hacen su propia normalización). Cuando esos tres handlers
    * migren a `extraer()`/`analizar()`/`redactar()`, este método deja de usarse y
    * se puede retirar de la interfaz.
+   *
+   * `tokens` llega solo si el proveedor informa el uso; el log de gasto por
+   * organización (ai_usage_logs) lo consume cuando existe.
    */
   llamar(opciones: {
     modelo: string;
     sistema: string;
     bloques: ReadonlyArray<unknown>;
     jsonEstricto?: boolean;
-  }): Promise<{ contenido: string; modelo: string }>;
+  }): Promise<{
+    contenido: string;
+    modelo: string;
+    tokens?: { entrada: number; salida: number };
+  }>;
 }
+
+/** Tokens consumidos por una llamada, si el proveedor los informa. */
+export type TokensRespuesta = { entrada: number; salida: number };
+
+/**
+ * Política de reintentos ante errores transitorios (A-3a). Los códigos no
+ * reintentables (`sin_credito`, `no_autorizado`…) no reintentan pase lo que
+ * pase; ver `proveedores/base.ts`.
+ */
+export type ReintentosIA = {
+  /** Intentos adicionales tras el primero (total = 1 + este). */
+  maxIntentosExtra: number;
+  /** Retardo base del backoff exponencial, en ms. */
+  baseMs: number;
+};
+
+export const REINTENTOS_POR_DEFECTO: ReintentosIA = { maxIntentosExtra: 2, baseMs: 1000 };
+
+/** Un `Retry-After` o un backoff mayor que esto no se espera: se falla ya. */
+export const REINTENTO_TOPE_MS = 15_000;
 
 /**
  * Proveedores soportados.
@@ -95,6 +122,8 @@ export type ConfiguracionIA = {
   urlBase?: string;
   /** Timeout por llamada. Un PDF escaneado grande puede tardar. */
   timeoutMs?: number;
+  /** Reintentos ante 429/transitorios. Defaults: 2 extra, base 1000 ms. */
+  reintentos?: ReintentosIA;
 };
 
 export const TIMEOUT_POR_DEFECTO_MS = 120_000;

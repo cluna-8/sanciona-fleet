@@ -48,7 +48,11 @@ export type Bloque =
   | { type: "image_url"; image_url: { url: string } }
   | { type: "file"; file: { filename: string; file_data: string } };
 
-export type RespuestaGateway = { contenido: string; modelo: string };
+export type RespuestaGateway = {
+  contenido: string;
+  modelo: string;
+  tokens?: { entrada: number; salida: number };
+};
 
 /** Singleton perezoso del proveedor de IA, construido una vez por proceso. */
 let proveedorCache: ProveedorIA | null = null;
@@ -61,6 +65,8 @@ function proveedor(): ProveedorIA {
       IA_MODELO_ANALISIS: process.env["IA_MODELO_ANALISIS"],
       IA_URL_BASE: process.env["IA_URL_BASE"],
       IA_TIMEOUT_MS: process.env["IA_TIMEOUT_MS"],
+      IA_REINTENTOS_MAX: process.env["IA_REINTENTOS_MAX"],
+      IA_REINTENTO_BASE_MS: process.env["IA_REINTENTO_BASE_MS"],
     };
     proveedorCache = crearProveedorDesdeEntorno(env);
   }

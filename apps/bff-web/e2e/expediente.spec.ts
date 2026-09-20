@@ -90,6 +90,13 @@ test.describe.serial("expediente: plazos → análisis → borrador", () => {
 
     await expect(page.getByText("Versión 2")).toBeVisible({ timeout: 15000 });
 
+    // Diff real entre versiones (RF-BORRADOR-5): comparar v1 contra la última
+    // guardada (v2) muestra líneas eliminadas y añadidas con data-tipo.
+    const itemV1 = page.locator("li", { hasText: "Versión 1" });
+    await itemV1.getByRole("button", { name: "Comparar" }).click();
+    await expect(page.locator('[data-tipo="eliminada"]').first()).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('[data-tipo="anadida"]').first()).toBeVisible();
+
     // Exportación real (RF-BORRADOR-3/4): binarios servidos con
     // Content-Disposition: attachment; exportan la última versión guardada (v2).
     const [descargaPdf] = await Promise.all([

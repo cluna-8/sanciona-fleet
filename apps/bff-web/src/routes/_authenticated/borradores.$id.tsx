@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, Download, FileDown, FileText, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
+import { DiffEscrito } from "@/components/diff-escrito";
 import { useSesion, puedeGestionar } from "@/hooks/use-org";
 import {
   useBorrador,
@@ -213,9 +214,11 @@ function EditorBorrador() {
                 {new Date(versionComparada.created_at).toLocaleString("es-ES")} ·{" "}
                 {versionComparada.change_note ?? "Sin nota"}
               </p>
-              <pre className="mt-3 max-h-[420px] overflow-auto whitespace-pre-wrap rounded-lg border border-border bg-secondary/40 p-4 text-[13px] leading-relaxed [font-family:Arial,Helvetica,sans-serif]">
-                {versionComparada.content}
-              </pre>
+              <DiffEscrito
+                antes={versionComparada.content}
+                despues={ultima?.content ?? ""}
+                etiqueta={`Diferencias entre la versión ${versionComparada.version} y la versión ${ultima?.version ?? versionComparada.version}`}
+              />
               <Button
                 size="sm"
                 variant="outline"

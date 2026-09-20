@@ -4,6 +4,14 @@ import type { EntradaPlazos } from "@/lib/plazos";
 import { calcularPlazosRemoto } from "@/lib/deadlines-client.server";
 import { parseImporte } from "@/lib/fleet";
 import {
+  esquemaAnalizarExpediente,
+  esquemaCrearExpediente,
+  esquemaGenerarBorrador,
+  esquemaProcesarDocumento,
+  esquemaRecalcularPlazos,
+  validar,
+} from "@/lib/esquemas-expediente";
+import {
   SISTEMA_ANALISIS,
   SISTEMA_BORRADOR,
   SISTEMA_EXTRACCION,
@@ -59,7 +67,7 @@ function booleano(campos: Campos, clave: string): boolean {
 
 export const procesarDocumento = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { extractionId: string }) => data)
+  .inputValidator(validar(esquemaProcesarDocumento))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
@@ -215,18 +223,7 @@ export const procesarDocumento = createServerFn({ method: "POST" })
 
 export const crearExpedienteDesdeExtraccion = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(
-    (data: {
-      extractionId: string;
-      campos: Campos;
-      vehicleId: string | null;
-      driverId: string | null;
-      documentType: string;
-      discrepancias?: string[];
-      confirmadoPorUsuario?: boolean;
-      camposCorregidos?: string[];
-    }) => data,
-  )
+  .inputValidator(validar(esquemaCrearExpediente))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const campos = data.campos ?? {};
@@ -403,7 +400,7 @@ export const crearExpedienteDesdeExtraccion = createServerFn({ method: "POST" })
 
 export const analizarExpediente = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { sanctionId: string }) => data)
+  .inputValidator(validar(esquemaAnalizarExpediente))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
@@ -576,7 +573,7 @@ export const analizarExpediente = createServerFn({ method: "POST" })
 
 export const generarBorrador = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { sanctionId: string; kind: "Alegaciones" | "Recurso" }) => data)
+  .inputValidator(validar(esquemaGenerarBorrador))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
@@ -704,7 +701,7 @@ export const generarBorrador = createServerFn({ method: "POST" })
 
 export const recalcularPlazos = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { sanctionId: string }) => data)
+  .inputValidator(validar(esquemaRecalcularPlazos))
   .handler(async ({ data, context }) => {
     const { supabase } = context;
     const { data: s, error } = await supabase

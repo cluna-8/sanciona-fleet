@@ -49,6 +49,54 @@ export type Database = {
           },
         ];
       };
+      ai_usage_logs: {
+        Row: {
+          created_at: string;
+          id: string;
+          kind: string;
+          model: string | null;
+          organization_id: string;
+          tokens_entrada: number | null;
+          tokens_salida: number | null;
+          user_id: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          kind: string;
+          model?: string | null;
+          organization_id: string;
+          tokens_entrada?: number | null;
+          tokens_salida?: number | null;
+          user_id?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          kind?: string;
+          model?: string | null;
+          organization_id?: string;
+          tokens_entrada?: number | null;
+          tokens_salida?: number | null;
+          user_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ai_usage_logs_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ai_usage_logs_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       document_access_logs: {
         Row: {
           action: string;

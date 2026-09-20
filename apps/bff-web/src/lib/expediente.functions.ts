@@ -22,6 +22,7 @@ import {
   extraerJson,
   llamarModelo,
 } from "@/lib/expediente.server";
+import { comprobarCuotaDiariaIA, registrarUsoIA } from "@/lib/limites-ia.server";
 
 type ValorCampo = string | number | boolean | null;
 type Campo = { valor: ValorCampo; confianza: string; fuente: string | null };
@@ -78,6 +79,10 @@ export const procesarDocumento = createServerFn({ method: "POST" })
       .single();
     if (error || !extraccion) throw new Error("No se ha encontrado el documento a procesar.");
 
+    // Cuota antes de marcar "Procesando documento": un error de cuota no debe
+    // dejar la extracción con "Error de procesamiento" (A-3b).
+    await comprobarCuotaDiariaIA(supabase, extraccion.organization_id);
+
     await supabase
       .from("sanction_extractions")
       .update({ status: "Procesando documento" })
@@ -106,6 +111,13 @@ export const procesarDocumento = createServerFn({ method: "POST" })
           },
           aBloqueArchivo(extraccion.file_name, mime, base64),
         ],
+      });
+      await registrarUsoIA(supabase, {
+        organizationId: extraccion.organization_id,
+        userId,
+        kind: "extraccion",
+        model: respuesta.modelo,
+        ...(respuesta.tokens ? { tokens: respuesta.tokens } : {}),
       });
 
       const salida = extraerJson<{
@@ -415,6 +427,8 @@ export const analizarExpediente = createServerFn({ method: "POST" })
 
     const orgId = sancion.organization_id;
 
+    await comprobarCuotaDiariaIA(supabase, orgId);
+
     const [{ data: documentos }, { data: extracciones }, { data: fuentes }] = await Promise.all([
       supabase
         .from("sanction_documents")
@@ -502,6 +516,13 @@ export const analizarExpediente = createServerFn({ method: "POST" })
         },
       ],
     });
+    await registrarUsoIA(supabase, {
+      organizationId: orgId,
+      userId,
+      kind: "analisis",
+      model: respuesta.modelo,
+      ...(respuesta.tokens ? { tokens: respuesta.tokens } : {}),
+    });
 
     const salida = extraerJson<Record<string, unknown>>(respuesta.contenido);
 
@@ -587,6 +608,7 @@ export const generarBorrador = createServerFn({ method: "POST" })
     if (error || !sancion) throw new Error("No se ha encontrado el expediente.");
 
     const orgId = sancion.organization_id;
+    await comprobarCuotaDiariaIA(supabase, orgId);
     const [{ data: analisis }, { data: fuentes }, { data: documentos }] = await Promise.all([
       supabase
         .from("sanction_analyses")
@@ -646,6 +668,13 @@ export const generarBorrador = createServerFn({ method: "POST" })
           )}`,
         },
       ],
+    });
+    await registrarUsoIA(supabase, {
+      organizationId: orgId,
+      userId,
+      kind: "borrador",
+      model: respuesta.modelo,
+      ...(respuesta.tokens ? { tokens: respuesta.tokens } : {}),
     });
 
     const { data: borrador, error: errorBorrador } = await supabase

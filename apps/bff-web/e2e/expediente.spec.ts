@@ -75,12 +75,12 @@ test.describe.serial("expediente: plazos → análisis → borrador", () => {
 
     await page.waitForURL(/\/borradores\/[0-9a-f-]{36}/, { timeout: 15_000 });
 
-    // El editor renderiza: textarea editable, guardar versión, exportar PDF y .doc
+    // El editor renderiza: textarea editable, guardar versión, exportar PDF y .docx
     await expect(page.getByRole("button", { name: "Guardar versión" })).toBeVisible({
       timeout: 15000,
     });
     await expect(page.getByRole("button", { name: /Exportar a PDF/ })).toBeVisible();
-    await expect(page.getByRole("button", { name: /Descargar documento editable/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Descargar .docx" })).toBeVisible();
     await expect(page.getByText("Versión 1")).toBeVisible();
 
     // Edita el texto y guarda una segunda versión
@@ -89,5 +89,19 @@ test.describe.serial("expediente: plazos → análisis → borrador", () => {
     await page.getByRole("button", { name: "Guardar versión" }).click();
 
     await expect(page.getByText("Versión 2")).toBeVisible({ timeout: 15000 });
+
+    // Exportación real (RF-BORRADOR-3/4): binarios servidos con
+    // Content-Disposition: attachment; exportan la última versión guardada (v2).
+    const [descargaPdf] = await Promise.all([
+      page.waitForEvent("download"),
+      page.getByRole("button", { name: "Exportar a PDF" }).click(),
+    ]);
+    expect(descargaPdf.suggestedFilename()).toMatch(/-v2\.pdf$/);
+
+    const [descargaDocx] = await Promise.all([
+      page.waitForEvent("download"),
+      page.getByRole("button", { name: "Descargar .docx" }).click(),
+    ]);
+    expect(descargaDocx.suggestedFilename()).toMatch(/-v2\.docx$/);
   });
 });

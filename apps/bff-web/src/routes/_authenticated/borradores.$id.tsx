@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
-import { ArrowLeft, Download, FileText, Loader2, Printer, Save } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { ArrowLeft, Download, FileDown, FileText, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { useSesion, puedeGestionar } from "@/hooks/use-org";
@@ -24,7 +26,7 @@ import {
 } from "@/components/ui/select";
 import { CLASES_ESTADO_BORRADOR, ESTADOS_BORRADOR } from "@/lib/analisis";
 import { formatoFecha } from "@/lib/fleet";
-import { documentoHtml } from "@/lib/documento";
+import { exportarBorrador } from "@/lib/borradores.functions";
 
 export const Route = createFileRoute("/_authenticated/borradores/$id")({
   component: EditorBorrador,
@@ -100,26 +102,25 @@ function EditorBorrador() {
       }),
   };
 
-  function exportarPdf() {
-    const ventana = window.open("", "_blank", "noopener,width=900,height=1000");
-    if (!ventana) return;
-    ventana.document.write(documentoHtml(borrador?.title ?? "Escrito", texto));
-    ventana.document.close();
-    ventana.focus();
-    ventana.print();
-  }
-
-  function exportarDocumento() {
-    const blob = new Blob([documentoHtml(borrador?.title ?? "Escrito", texto)], {
-      type: "application/msword;charset=utf-8",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${(borrador?.title ?? "escrito").replace(/[^\w\s.-]/g, "")}.doc`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
+  // Exportación real en servidor (RF-BORRADOR-3/4): siempre exporta la última
+  // versión guardada; si el editor está sucio se avisa en lugar de mentir.
+  const fnExportar = useServerFn(exportarBorrador);
+  const exportar = useMutation({
+    mutationFn: (formato: "pdf" | "docx") => {
+      const organizationId = sesion?.organization?.id;
+      if (!organizationId) throw new Error("Tu usuario no tiene una empresa activa asignada.");
+      return fnExportar({ data: { draftId: id, organizationId, formato } });
+    },
+    onSuccess: (res) => {
+      if (texto !== (ultima?.content ?? "")) {
+        toast.info(
+          `Se ha exportado la última versión guardada (v ${res.version}). Guarda tus cambios para incluirlos.`,
+        );
+      }
+      window.location.assign(res.url);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   if (isLoading) {
     return (
@@ -259,17 +260,29 @@ function EditorBorrador() {
               variant="outline"
               size="sm"
               className="w-full justify-start"
-              onClick={exportarPdf}
+              disabled={exportar.isPending}
+              onClick={() => exportar.mutate("pdf")}
             >
-              <Printer className="mr-2 h-4 w-4" /> Exportar a PDF
+              {exportar.isPending && exportar.variables === "pdf" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <FileDown className="mr-2 h-4 w-4" />
+              )}
+              Exportar a PDF
             </Button>
             <Button
               variant="outline"
               size="sm"
               className="w-full justify-start"
-              onClick={exportarDocumento}
+              disabled={exportar.isPending}
+              onClick={() => exportar.mutate("docx")}
             >
-              <Download className="mr-2 h-4 w-4" /> Descargar documento editable
+              {exportar.isPending && exportar.variables === "docx" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
+              Descargar .docx
             </Button>
           </div>
 

@@ -13,10 +13,12 @@ por separado).
 > **Estado de ejecución (2026-09-20):** la **Fase 1** del
 > [`10-plan-hardening-v1.md`](10-plan-hardening-v1.md) (rama
 > `fix/hardening-v1-fase1`, commit `19451f1`) resolvió **C-3, A-1, A-4, M-8,
-> M-10, M-11 y B-4** (✅) y reevaluó **M-3 y B-7** como **falsos positivos**
-> (sin cambio). El resto sigue ⬜ pendiente, en su mayoría a la espera de
-> puerta humana o `apply` de terraform (Fase 2). Los contadores de más abajo
-> reflejan este estado.
+> M-10, M-11 y B-4** (✅) y reevaluó **M-3** como **falso positivo** (sin
+> cambio). La **Fase 2c** (rama `fix/borradores-export-ia`) resolvió **A-2,
+> A-3, M-1, B-6 y B-7** (✅) — B-7 pasa de "falso positivo" a resuelto porque
+> el botón ahora restaura **y guarda**, como pedía RF-BORRADOR-6. El resto
+> sigue ⬜ pendiente, en su mayoría a la espera de puerta humana o `apply` de
+> terraform (Fase 2). Los contadores de más abajo reflejan este estado.
 
 ## Convenciones
 
@@ -26,7 +28,8 @@ por separado).
 - **Dimensiones:** 🔒 seguridad · 🧬 código · 📋 funcional · 🛠️ infra/ops.
 - **Esfuerzo:** S (<½ día) · M (1–2 días) · L (>2 días).
 - **Estado:** ⬜ pendiente · 🟡 en curso · ✅ hecho · ❌ falso positivo (sin
-  cambio). GAP-1 (bucket) ✅; Fase 1 del plan 10 ✅ (7 hallazgos); M-3 y B-7 ❌.
+  cambio). GAP-1 (bucket) ✅; Fase 1 del plan 10 ✅ (7 hallazgos); Fase 2c ✅
+  (A-2, A-3, M-1, B-6, B-7); M-3 ❌.
 
 ---
 
@@ -35,11 +38,12 @@ por separado).
 | Severidad | Total | Hecho (✅) | Falso positivo (❌) | Pendiente (⬜) | Bloquea v1 |
 |---|---:|---:|---:|---:|---|
 | CRÍTICA | 4 | 1 (C-3) | 0 | 3 | sí (C-1, C-2, C-4) |
-| ALTA | 13 | 2 (A-1, A-4) | 0 | 11 | varias |
-| MEDIA | 14 | 3 (M-8, M-10, M-11) | 1 (M-3) | 10 | no |
-| BAJA | 12 | 1 (B-4) | 1 (B-7) | 10 | no |
+| ALTA | 13 | 4 (A-1, A-2, A-3, A-4) | 0 | 9 | varias |
+| MEDIA | 14 | 4 (M-1, M-8, M-10, M-11) | 1 (M-3) | 9 | no |
+| BAJA | 12 | 3 (B-4, B-6, B-7) | 0 | 9 | no |
 
-**Avance Fase 1 (plan 10):** 7 de 43 hallazgos resueltos + 2 reevaluados. Quedan
+**Avance Fase 1 + Fase 2c (plan 10):** 12 de 43 hallazgos resueltos + 1
+reevaluado. Quedan
 **3 CRÍTICAS** que bloquean v1:
 
 1. **CU-07 alta autoservicio insegura** (C-1) — endpoint público con
@@ -138,28 +142,40 @@ flota). La IA, los KPIs del dashboard y la prevención **son reales, no mocks**.
   que `fetchSanciones` ya lo hace).
 - **Esfuerzo:** S.
 
-### A-2 · 5 server functions sin validación Zod 🔒🧬
+### A-2 · 5 server functions sin validación Zod 🔒🧬 ✅
 - **Afecta:** hardening de entrada a IA/DB
-- **Dónde:** `apps/bff-web/src/lib/expediente.functions.ts:62,218-229,406,579,707`
-  (`procesarDocumento`, `crearExpedienteDesdeExtraccion`, `analizarExpediente`,
-  `generarBorrador`, `recalcularPlazos`)
-- **Qué falla:** `inputValidator` es un type-cast; campos libres y `kind`
-  llegan a la DB y a los prompts del LLM sin validar. Inyección de prompt y
+- **Estado:** ✅ **Hecho (Fase 2c, rama `fix/borradores-export-ia`, commit
+  `8f02af4`).** Esquemas Zod por server fn en
+  `apps/bff-web/src/lib/esquemas-expediente.ts` (6 esquemas: las 5 fns IA/DB +
+  `exportarBorrador`), con helper `validar()` que devuelve `inputValidator`
+  con mensaje legible. Zod 3 hace *strip* de claves desconocidas: el payload
+  que llega a `JSON.stringify(contexto)` de los prompts queda acotado. 10
+  tests.
+- **Dónde:** `apps/bff-web/src/lib/expediente.functions.ts` (las 5 fns),
+  `borradores.functions.ts` (export)
+- **Qué fallaba:** `inputValidator` era un type-cast; campos libres y `kind`
+  llegaban a la DB y a los prompts del LLM sin validar. Inyección de prompt y
   inserts mal tipados.
-- **Fix:** esquema Zod por server fn (en `@sanciona/contracts` o local),
-  validar antes de procesar. Reusa los tipos `Database` de
-  `src/integrations/supabase/types.ts`.
 - **Esfuerzo:** M.
 
-### A-3 · Sin rate limiting / presupuesto por org en IA 🔒🛠️
+### A-3 · Sin rate limiting / presupuesto por org en IA 🔒🛠️ ✅
 - **Afecta:** coste, abuso, robustez
-- **Dónde:** `packages/ai-provider/src/proveedores/openai-compatible.ts:43-72`;
-  errores mapeados en `packages/ai-provider/src/errores.ts:56`
-- **Qué falla:** no hay rate limit, ni presupuesto por organización, ni
-  backoff en 429, ni registro de `usage` (tokens). Un tenant puede vaciar la
+- **Estado:** ✅ **Hecho (Fase 2c, commits `a94bcbe` y `17ff0c7`).** Dos
+  mitades: (a) reintentos con backoff exponencial y jitter ±25 %, respeto de
+  `Retry-After`, tope 15 s y no-reintento de códigos no reintentables, en
+  `ProveedorBase` — los 4 proveedores lo heredan (8 tests); (b) cuota diaria
+  por organización: `comprobarCuotaDiariaIA` cuenta `ai_usage_logs` del día
+  (Europe/Madrid, DST vía Intl) ANTES de gastar y corta con mensaje amigable;
+  `registrarUsoIA` escribe cada llamada exitosa con los tokens que informa el
+  proveedor. Fail-open si la tabla aún no existe (migración-primero). Migración
+  `20260920185007_ai_usage_logs` (append-only). El presupuesto por plan queda
+  listo pero inactivo (`LIMITES_POR_PLAN` vacío) hasta la puerta de precios
+  (ADR 0004 D-4/D-5). 17 tests.
+- **Dónde:** `packages/ai-provider/src/proveedores/base.ts`,
+  `openai-compatible.ts`, `errores.ts`; `apps/bff-web/src/lib/limites-ia.server.ts`
+- **Qué fallaba:** no había rate limit, ni presupuesto por organización, ni
+  backoff en 429, ni registro de `usage` (tokens). Un tenant podía vaciar la
   cuota de OpenRouter.
-- **Fix:** rate limit por org + presupuesto configurable por plan (ADR 0004
-  D-4/D-5), backoff exponencial en 429, log de `usage` para facturación.
 - **Esfuerzo:** M.
 
 ### A-4 · `sanction_actions.insert` fire-and-forget — auditoría silenciosa ✅ 🧬
@@ -267,14 +283,22 @@ flota). La IA, los KPIs del dashboard y la prevención **son reales, no mocks**.
 
 ## MEDIAS
 
-### M-1 · Export PDF = `window.print()`; .doc = Blob HTML (RF-BORRADOR-3/4) 🧬📋
-- **Dónde:** `apps/bff-web/src/routes/_authenticated/borradores.$id.tsx:103-122`
-- **Qué falla:** "Exportar a PDF" abre `window.print()` (no genera PDF); el
-  "descargar editable" es HTML renombrado a `.doc` (no OOXML). El HTML no
-  incluye cabecera de empresa, expediente, fecha ni firma.
-- **Fix:** PDF server-side (`@react-pdf/renderer` o puppeteer en server fn →
-  subir a `sanction-documents` → `signedUrl`); `.docx` real con la librería
-  `docx` en server fn. Skill `pdf-official`.
+### M-1 · Export PDF = `window.print()`; .doc = Blob HTML (RF-BORRADOR-3/4) 🧬📋 ✅
+- **Estado:** ✅ **Hecho (Fase 2c, commit `8499b8f`).** Server fn
+  `exportarBorrador` genera PDF real con `pdf-lib` (A4, márgenes 2,5 cm,
+  cabecera de empresa — razón social, CIF, dirección —, pie "Página X de N",
+  word-wrap propio) y `.docx` real con lib `docx` (Arial, párrafos
+  justificados). Archiva en Storage (`sanction-documents`,
+  `${org}/escritos/…`) y descarga por signedUrl de 60 s con
+  `Content-Disposition: attachment`; insert de auditoría en `sanction_actions`
+  con `if (error) throw` (A-4). Siempre exporta la última versión guardada.
+  Elegidas por bundlear puro bajo Bun+Nitro sin `node_modules` (`pdfkit`
+  descartado por sus `.afm` en disco). Ambas libs solo al bundle server.
+- **Dónde:** `apps/bff-web/src/lib/escrito.ts`, `pdf-escrito.server.ts`,
+  `docx-escrito.server.ts`, `borradores.functions.ts`
+- **Qué fallaba:** "Exportar a PDF" abría `window.print()` (no generaba PDF);
+  el "descargar editable" era HTML renombrado a `.doc` (no OOXML) y sin
+  cabecera de empresa, expediente, fecha ni firma.
 - **Esfuerzo:** M.
 
 ### M-2 · Invitaciones no envían email (RF-AUTH-3) 📋
@@ -409,8 +433,8 @@ flota). La IA, los KPIs del dashboard y la prevención **son reales, no mocks**.
 | B-3 | `src/lib/fleet.ts` shim `@deprecated` (22 consumidores) | `src/lib/fleet.ts:1` | migrar importadores a `@sanciona/contracts` / `@/shared/lib/formato` | M |
 | B-4 | ✅ `useCambiarEstado` no invalida `analisis`/`plazos` | `features/expedientes/api/mutations.ts:24-28` | invalidar `analisisKeys.deSancion(id)`, `plazosKeys.deSancion(id)` — **hecho Fase 1** | S |
 | B-5 | Sin `manualChunks` para vendors | `vite.config.ts` | `@tanstack/*`, `@supabase/supabase-js` en chunk estable | S |
-| B-6 | Sin diff real entre versiones (RF-BORRADOR-5) | `borradores.$id.tsx:142,208-216` | lib `diff` | M |
-| B-7 | ❌ "Restaurar" no guarda (RF-BORRADOR-6) | `borradores.$id.tsx:222` | **falso positivo:** el botón dice "Restaurar este texto en el editor" y hace eso (carga el texto para editar y guardar versión) | S |
+| B-6 | ✅ Diff real entre versiones (RF-BORRADOR-5) — **hecho Fase 2c**: `diff-escrito.ts` sobre lib `diff`, panel con prefijo `+ `/`− ` + color, gancho E2E `data-tipo` | `borradores.$id.tsx` | — | M |
+| B-7 | ✅ "Restaurar" no guardaba (RF-BORRADOR-6) — **resuelto Fase 2c** (superseded): la reevaluación como falso positivo era cierta para el botón antiguo, pero la spec pedía restaurar-y-guardar y así se implementó: "Restaurar y guardar versión" crea una versión nueva (append-only, con confirmación si hay cambios sin guardar) | `borradores.$id.tsx` | — | S |
 | B-8 | `sanction_outcomes` vacío, sin analítica (RF-INF-2) | sin UI | punto de escritura al resolver + analítica | L |
 | B-9 | `document_access_logs` sin log (RF-DOC-2) | sin UI | INSERT al descargar/ver | S |
 | B-10 | Integraciones DGT/DIR3 (sin RF) | `integration_endpoints` vacía | definir RF + clientes | L |

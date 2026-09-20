@@ -307,7 +307,7 @@ function PanelExtraccion({ sanctionId }: { sanctionId: string }) {
         </div>
         <span className="rounded-full border border-border bg-secondary px-2 py-0.5 text-[11px] text-secondary-foreground">
           {extraccion.status}
-          {extraccion.ocr_used ? " · lectura óptica" : ""}
+          {extraccion.ocr_used ? " · transcripción automática" : ""}
         </span>
       </div>
       {extraccion.warnings?.length > 0 && (

@@ -1,5 +1,16 @@
-# SANCIONA FLEET — Especificación funcional (v0.4)
+# SANCIONA FLEET — Especificación funcional (v0.5)
 
+> **v0.5 (20 sep 2026):** RF-BORRADOR-3..6 pasan de [NUEVO] a [EXISTENTE]: la
+> exportación de escritos es real (PDF con pdf-lib y .docx con lib docx,
+> generados server-side y archivados en Storage con enlace firmado), el diff
+> entre versiones es real (lib diff) y "Restaurar y guardar versión" crea una
+> versión nueva — `sanction_draft_versions` es append-only. RF-BORRADOR-4/5/6
+> se adelantan de v2 a v1 (§9); con ello el hallazgo B-7 del backlog queda
+> cubierto por lo que la spec pedía (RF-BORRADOR-6). Hardening de IA en el
+> mismo paquete: validación Zod de las server fns de expediente (A-2, mitiga la
+> inyección de campos en los prompts) y reintento con backoff y Retry-After +
+> cuota diaria por organización con log de uso `ai_usage_logs` (A-3).
+>
 > **v0.4 (19 sep 2026):** las 11 decisiones pendientes (10 de producto + 1 de
 > alcance de migración) se resuelven aplicando sus valores por defecto — ver ADR
 > 0004. Quedan tres puertas humanas bloqueantes para v1 pública (validación
@@ -173,14 +184,19 @@ funciona así y se mantiene.
   del escrito (organismo, expediente, hechos, alegaciones, fundamentos, etc.).
 - **RF-BORRADOR-2** [EXISTENTE] Solo `revisor_juridico` puede marcar un
   borrador como "Validado" (aplicado en UI y en la mutación).
-- **RF-BORRADOR-3** [NUEVO] "Exportar a PDF" debe generar un PDF real, no abrir
-  `window.print()` (§8.2 #10).
-- **RF-BORRADOR-4** [NUEVO] "Descargar documento editable" debe producir un
-  `.docx` real, no HTML con MIME falso de Word (§8.2 #10).
-- **RF-BORRADOR-5** [NUEVO] "Comparar versiones" debe mostrar un diff real
-  entre dos versiones, no solo el texto de una (§8.2 #11).
-- **RF-BORRADOR-6** [NUEVO] "Restaurar este texto en el editor" debe guardar el
-  cambio, no solo cargarlo en pantalla (§8.2 #11).
+- **RF-BORRADOR-3** [EXISTENTE] "Exportar a PDF" genera un PDF real server-side
+  (pdf-lib, archivado en Storage con enlace firmado), no abre `window.print()`
+  (§8.2 #10). Implementado en v0.5.
+- **RF-BORRADOR-4** [EXISTENTE] "Descargar documento editable" produce un
+  `.docx` real (lib docx), no HTML con MIME falso de Word (§8.2 #10). Adelantado
+  de v2 a v1 e implementado en v0.5.
+- **RF-BORRADOR-5** [EXISTENTE] "Comparar versiones" muestra un diff real entre
+  la versión seleccionada y la última guardada (§8.2 #11). Adelantado de v2 a
+  v1 e implementado en v0.5.
+- **RF-BORRADOR-6** [EXISTENTE] "Restaurar y guardar versión" guarda el texto
+  de la versión restaurada como versión nueva — `sanction_draft_versions` es
+  append-only, nada se destruye (§8.2 #11). Adelantado de v2 a v1 e
+  implementado en v0.5.
 
 ### 3.7 Documentos
 
@@ -496,12 +512,14 @@ poder operar con clientes reales. Ver Bloque 4 de `TAREAS-CRISTIAN.md`.
 - Todos los `[NUEVO]` marcados como crítico: RF-ALTA-2 (alta manual funcional),
   RF-FLOTA-2 (borrado), RF-PERF-1/2 (paginación), RF-PLAZO-3/4 (plazos
   unificados), RS-2/RS-3/RS-4 (seguridad), RF-BORRADOR-3 (PDF real).
+- RF-BORRADOR-4/5/6 (docx real, diff de versiones, restaurar-y-guardar) —
+  adelantados de v2 a v1 en v0.5: la exportación es parte del flujo "generar
+  y enviar" y un escrito que no se puede entregar rompe el caso de uso.
 - RF-ANALISIS-4 (proveedor de IA propio) — sin esto no hay producto.
 - Bloque 4 completo (legal) antes del primer cliente real, no antes del primer
   despliegue técnico.
 
 **Se queda para v2 (backlog explícito):**
-- RF-BORRADOR-4/5/6 (docx real, diff de versiones, restaurar-y-guardar).
 - RF-INF-2 (`sanction_outcomes` / analítica de estrategias).
 - RF-DOC-2 (log de accesos a documentos) si no es requisito legal inmediato.
 - Máquina de estados completa (§4.2) puede empezar como advertencia blanda

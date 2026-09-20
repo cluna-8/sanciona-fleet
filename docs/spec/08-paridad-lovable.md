@@ -57,6 +57,8 @@ Leyenda de veredicto:
 - **GAP** — diferencia real Lovable↔bff-web que afecta funcionalidad.
 - **AMBOS-IGUAL-FALTA** — ambos lo hacen igual y/o incompleto; paridad neutra
   (no es una regresión de la migración, es una limitación heredada).
+- **SANCIONA MEJOR** — bff-web supera al Lovable en esta feature (la migración
+  no solo alcanza: mejora).
 
 | Feature | Lovable | bff-web | Veredicto | Spec | Resultado |
 |---|---|---|---|---|---|
@@ -84,8 +86,8 @@ Leyenda de veredicto:
 | Superadmin (visión global) | ✅ | ✅ | PARIDAD OK | superadmin | PASS |
 | Tutorial | ✅ | ✅ | PARIDAD OK | rutas /tutorial | PASS |
 | Org demo con datos sembrados | ✅ | ✅ | PARIDAD OK (verificado: 5+ sanciones, 5+ vehículos en prod) | — | n/a |
-| Export PDF | window.print | window.print | AMBOS-IGUAL-FALTA (no PDF real) | expediente CU-05 | PASS |
-| Export .doc | Blob HTML | Blob HTML | AMBOS-IGUAL-FALTA (no docx real) | expediente CU-05 | PASS |
+| Export PDF | window.print | PDF real server-side (pdf-lib, Storage + signedUrl, cabecera de empresa) | SANCIONA MEJOR (RF-BORRADOR-3, 20 sep) | expediente CU-05 | PASS |
+| Export .doc | Blob HTML | .docx real (lib docx) | SANCIONA MEJOR (RF-BORRADOR-4, 20 sep) | expediente CU-05 | PASS |
 | Plazos: festivos Semana Santa/autonómico/local | ❌ | ❌ | AMBOS-IGUAL-FALTA (RF-PLAZO-5) | — | n/a |
 | Email (RESEND) | degrada | degrada | AMBOS-IGUAL-FALTA (sin RESEND_API_KEY) | — | n/a |
 | `sanction_outcomes`/`document_access_logs`/`integration_endpoints` (tablas sin UI) | sin UI | sin UI | AMBOS-IGUAL-FALTA | — | n/a |

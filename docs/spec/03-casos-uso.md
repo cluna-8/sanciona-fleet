@@ -200,7 +200,7 @@ unitario** — requiere evaluación con expedientes reales y revisión jurídica
 
 ## CU-05 · Redactar y validar un escrito
 
-**Requisitos:** RF-BORRADOR-1, RF-BORRADOR-2, RF-BORRADOR-3
+**Requisitos:** RF-BORRADOR-1, RF-BORRADOR-2, RF-BORRADOR-3, RF-BORRADOR-4, RF-BORRADOR-5, RF-BORRADOR-6
 **Actores:** gestor de sanciones y revisor jurídico
 
 ```gherkin
@@ -227,9 +227,48 @@ Escenario: Faltan datos esenciales en el expediente
 Escenario: Exportar el escrito
   Cuando pulso "Exportar a PDF"
   Entonces se descarga un archivo PDF valido
+  Y con cabecera de empresa (razon social, CIF, direccion)
+  Y pie de pagina "Pagina X de N"
+  Y queda archivado en Storage con trazabilidad en el historial
 ```
-⚠️ **Roto.** Abre una ventana y llama a `window.print()`. No genera PDF.
-"Descargar documento editable" produce HTML con extensión `.doc`.
+✅ **Implementado (v0.5).** Server fn `exportarBorrador`: PDF real con pdf-lib,
+archivado en Storage y descargado por signedUrl de 60 s; siempre exporta la
+última versión guardada (si el editor está sucio, avisa). Insert en
+`sanction_actions` ("Exportación de escrito") con `if (error) throw` (A-4).
+Test unitario del generador + assert de descarga en el E2E de CU-05.
+
+```gherkin
+Escenario: Descargar el escrito editable
+  Cuando pulso "Descargar .docx"
+  Entonces se descarga un archivo .docx real (OOXML)
+  Y se abre en Word sin avisos de formato
+```
+✅ **Implementado (v0.5).** Lib `docx` server-side, mismo circuito de Storage.
+Antes era HTML con extensión `.doc` y MIME falso de Word.
+
+```gherkin
+Escenario: Comparar dos versiones
+  Dado que un borrador tiene la version 1 y la 2 guardadas
+  Cuando pulso "Comparar" en la version 1
+  Entonces veo un diff linea a linea entre la version 1 y la ultima guardada
+  Y las lineas anadidas y eliminadas se distinguen por prefijo y color
+```
+✅ **Implementado (v0.5).** `diffLines` (lib diff) entre la versión elegida y
+la última guardada; el panel muestra prefijo `+ `/`− ` además de color
+(accesible sin distinguir colores) y gancho E2E `data-tipo`. Antes mostraba el
+texto completo en un `<pre>` sin diff.
+
+```gherkin
+Escenario: Restaurar una version anterior
+  Dado que comparo la version 1 con la ultima
+  Cuando pulso "Restaurar y guardar version"
+  Y confirmo el dialogo si tengo cambios sin guardar
+  Entonces se crea una version nueva con el texto de la version 1
+  Y nada se destruye: sanction_draft_versions es append-only
+```
+✅ **Implementado (v0.5).** Antes "Restaurar" solo cargaba el texto en el
+editor: si el usuario navegaba fuera, la restauración se perdía (hallazgo
+B-7). Ahora restaura guardando, como pedía RF-BORRADOR-6.
 
 ---
 

@@ -58,10 +58,12 @@ bloqueado deploys. Es deuda del commit E2E, saldada aquí.
   cabecera "Acción recomendada", rationale y próximo paso. El auditor grepó
   `recommended_action` (nombre de columna) pero el contrato lo expone como
   `recommendation`.
-- **B-7 "Restaurar" no guarda** — **falso positivo.** El botón dice
-  "Restaurar este texto en el editor" y hace exactamente eso: carga el texto
-  en el editor para que el usuario lo edite y luego guarde versión. Es el
-  comportamiento intencionado, no un bug.
+- **B-7 "Restaurar" no guarda** — **falso positivo** *(reevaluado en Fase 1;
+  superseded en la Fase 2c de abajo: la spec RF-BORRADOR-6 pedía
+  restaurar-y-guardar y así se implementó — el botón ahora guarda una versión
+  nueva, ver backlog 09)*. El botón de entonces decía "Restaurar este texto en
+  el editor" y hacía exactamente eso: cargaba el texto
+  en el editor para que el usuario lo editara y luego guardara versión.
 
 ## Fase 2 — Requiere decisión humana o apply de terraform
 
@@ -88,8 +90,8 @@ bloqueado deploys. Es deuda del commit E2E, saldada aquí.
 
 | ID | Hallazgo | Nota |
 |---|---|---|
-| A-2 | 5 server fns sin Zod | Validar entrada a IA/DB; reusa tipos `Database` |
-| A-3 | Sin rate limiting / presupuesto IA | Por org + plan; backoff 429; log `usage` |
+| A-2 | 5 server fns sin Zod | ✅ **Hecho 20 sep (rama `fix/borradores-export-ia`, commit `8f02af4`)** — 6 esquemas Zod + helper `validar()`, strip de claves desconocidas |
+| A-3 | Sin rate limiting / presupuesto IA | ✅ **Hecho 20 sep (commits `a94bcbe` + `17ff0c7`)** — reintentos con backoff/`Retry-After` (tope 15 s) + cuota diaria por org con `ai_usage_logs` y log de tokens; presupuesto por plan inactivo hasta la puerta de precios |
 | A-5 | Motor de plazos duplicado y muerto | Borrar `lib/plazos.ts` motor; tipos a `@sanciona/contracts`. **Riesgo de refactor** — hacer con E2E CU-03 verde |
 | A-6 | Dashboard/calendario/listados leen campos planos | Consumir `usePlazos` en las 4 vistas |
 | A-7 | Sin soft-delete de flota (RF-FLOTA-2) | Migración `deleted_at` + mutation + UI |
@@ -97,6 +99,26 @@ bloqueado deploys. Es deuda del commit E2E, saldada aquí.
 | A-10 | E2E no corre en CI | Job `workflow_dispatch` + smoke no-IA en PR |
 | A-11 | Sin backups DB | Config Supabase PITR (coste) |
 | A-13 | Sin Sentry/uptime | Cuenta + integración |
+
+### 2c — Ejecutado (20 sep 2026, rama `fix/borradores-export-ia`)
+
+La auditoría de CU-01/CU-05 ("OCR y generación de documentación ¿están bien
+hechas?") dictaminó: redacción bien, exportación rota. La ejecución cubre lo
+que tocaba el flujo IA/borradores — junto con los fixes de borradores que la
+misma auditoría pidió (M-1, B-6, B-7, ver backlog 09):
+
+| ID | Commit | Qué |
+|---|---|---|
+| M-1 / B-6 / B-7 | `8499b8f`…`1577dcf` | Export real PDF (`pdf-lib`) y .docx (lib `docx`) archivados en Storage + signedUrl; diff real (lib `diff`) entre versión y última; "Restaurar y guardar versión" crea versión nueva |
+| A-2 | `8f02af4` | Zod en las 6 server fns de expediente/borradores |
+| A-3a | `a94bcbe` | Reintentos con backoff + `Retry-After`, tope 15 s, en `ProveedorBase` |
+| A-3b | `17ff0c7` | Cuota diaria por org + `ai_usage_logs` (migración `20260920185007`, append-only, fail-open) |
+
+**Puerta de CI local:** 103 unitarios pass (56 → 103), typecheck por paquete
+limpio, `bff-web` lint/build limpios; smoke del bundle Nitro+Bun OK
+(pdf-lib/docx/diff solo al bundle server). **Pendiente con confirmación:**
+aplicar la migración a prod (antes de desplegar el código), re-corrida E2E
+CU-03/04/05 (gasta tokens), merges.
 | M-1 | Export PDF/docx reales | Server fn + `@react-pdf/renderer` / lib `docx` |
 | M-2 | Invitaciones no envían email | `enviarCorreo` en `crearInvitacion` + plantilla |
 | M-4 | `/documentos` no permite subir | UI upload reusando `subirDocumento` |

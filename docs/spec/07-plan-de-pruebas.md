@@ -5,7 +5,7 @@ Sanciona Fleet funciona antes de abrirlo a clientes reales, y el criterio que
 decide si una pieza "está hecha" (`docs/spec/05-trazabilidad.md` §6: *un RF no
 está hecho hasta que tiene test*).
 
-Actualizado: 19 de septiembre de 2026.
+Actualizado: 20 de septiembre de 2026.
 
 ---
 
@@ -14,18 +14,25 @@ Actualizado: 19 de septiembre de 2026.
 | Nivel | Qué cubre | Dónde | Cantidad |
 |---|---|:--:|---:|
 | **Unitario** | Motor de plazos (lógica pura, sin IA) | `services/deadlines-service/test/plazos.test.ts` | 16 |
-| **Unitario** | Interfaz de IA: JSON, normalización, proveedores | `packages/ai-provider/test/*.test.ts` | 34 |
+| **Unitario** | Interfaz de IA: JSON, normalización, proveedores, reintentos con backoff (A-3a) | `packages/ai-provider/test/*.test.ts` | 42 |
 | **Unitario** | Validación de extracción (CIF, tipo, comparación de empresa) | `apps/bff-web/src/lib/validacion-extraccion.test.ts` | 6 |
+| **Unitario** | Escritos: parser de bloques, saneo de texto para PDF, nombre de archivo | `apps/bff-web/src/lib/escrito.test.ts` | 9 |
+| **Unitario** | Generadores de PDF (pdf-lib) y .docx (lib docx) | `apps/bff-web/src/lib/pdf-escrito.test.ts`, `docx-escrito.test.ts` | 7 |
+| **Unitario** | Diff de versiones de un escrito (lib diff) | `apps/bff-web/src/lib/diff-escrito.test.ts` | 4 |
+| **Unitario** | Esquemas Zod de las server fns de expediente (A-2) | `apps/bff-web/src/lib/esquemas-expediente.test.ts` | 10 |
+| **Unitario** | Cuota diaria de IA: medianoche con DST, fail-open, corte (A-3b) | `apps/bff-web/src/lib/limites-ia.test.ts` | 9 |
 | **Integración** | bff-web → deadlines-service (contrato de plazos) | `apps/bff-web/e2e/expediente.spec.ts` (CU-03, en vivo) | 1 |
 | **E2E** | Flujos de usuario en prod (auth, rutas, flota, CU-02/03/04/05/06, superadmin, secundarias) | `apps/bff-web/e2e/*.spec.ts` | 28 |
 
-**Total: 56 tests unitarios + 28 E2E = 84 tests.** `bun test` ejecuta los
+**Total: 103 tests unitarios + 28 E2E = 131 tests.** `bun test` ejecuta los
 unitarios desde la raíz del monorepo; `bash scripts/run-e2e.sh` ejecuta los
 E2E contra prod (inyecta secretos SSM).
 
-Lo que no se prueba hoy: el resto de la lógica de `apps/bff-web` (alta, flota,
-borradores, documentos, informes, avisos, análisis, plazos UI), cualquier
-flujo de extremo a extremo, y la integración con Supabase/IA real.
+Lo que no se prueba hoy: la lógica de UI de `apps/bff-web` (alta, flota,
+documentos, informes, avisos, plazos UI) queda cubierta por los E2E de flujo,
+no por unitarios; y la integración con Supabase/IA real solo por los E2E
+contra prod. Los unitarios de borradores cubren export/diff/esquemas/cuota,
+no la generación IA en vivo (eso es CU-04/CU-05 en prod).
 
 ---
 
@@ -35,7 +42,10 @@ flujo de extremo a extremo, y la integración con Supabase/IA real.
 
 Regla: toda lógica de dominio pura (sin Supabase, sin red) vive en un módulo
 importable y se testa con `bun test` sin levantar servicios. Es lo que hoy
-cubren `deadlines-service`, `ai-provider` y `validacion-extraccion`.
+cubren `deadlines-service`, `ai-provider` y, en `apps/bff-web/src/lib`,
+`validacion-extraccion`, `escrito`, `pdf-escrito`, `docx-escrito`,
+`diff-escrito`, `esquemas-expediente` y `limites-ia` (los borradores de
+CU-05: export, diff, restaurar y el hardening A-2/A-3 añadidos el 20 sep).
 
 Prioridad inmediata — extraer y testear la lógica hoy mezclada con la UI en
 `apps/bff-web`:
@@ -162,5 +172,9 @@ Antes del primer cliente real, el plan exige:
   - ✅ **Hecho (2026-09-20):** CU-03 recalcular plazos PASS en prod (3 plazos
     con tipo y fecha vía deadlines-service).
 
-Lo que queda fuera de v1 (backlog v2): E2E de flujos de borradores/docx/diff
-(RF-BORRADOR-4/5/6), analítica de resultados (RF-INF-2).
+Lo que queda fuera de v1 (backlog v2): analítica de resultados (RF-INF-2).
+Los E2E de borradores/docx/diff (RF-BORRADOR-3..6) ya NO están fuera: el E2E
+de CU-05 se extendió el 20 sep para assertar las descargas (.pdf/.docx), el
+diff (`data-tipo`) y la restauración con guardado. La re-corrida contra prod
+de CU-03/04/05 con esas extensiones está pendiente de confirmación (gasta
+tokens de OpenRouter reales).

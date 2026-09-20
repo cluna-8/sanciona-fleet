@@ -110,5 +110,11 @@ test.describe.serial("expediente: plazos → análisis → borrador", () => {
       page.getByRole("button", { name: "Descargar .docx" }).click(),
     ]);
     expect(descargaDocx.suggestedFilename()).toMatch(/-v2\.docx$/);
+
+    // Restaurar la versión 1 crea una versión 3 nueva (RF-BORRADOR-6):
+    // sanction_draft_versions es append-only, restaurar nunca destruye.
+    page.on("dialog", (dialogo) => dialogo.accept());
+    await page.getByRole("button", { name: "Restaurar y guardar versión" }).click();
+    await expect(page.getByText("Versión 3")).toBeVisible({ timeout: 15000 });
   });
 });

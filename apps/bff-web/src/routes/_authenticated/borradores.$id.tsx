@@ -143,6 +143,41 @@ function EditorBorrador() {
 
   const versionComparada = (versiones ?? []).find((v) => v.id === comparar);
 
+  /**
+   * Restaurar = guardar una versión nueva con el texto de la comparada
+   * (RF-BORRADOR-6): sanction_draft_versions es append-only, nada se destruye.
+   * Si el editor tiene cambios sin guardar, se piden confirmación antes de
+   * sobreescribirlos (patrón de usuarios.tsx).
+   */
+  const restaurarVersion = () => {
+    if (!versionComparada) return;
+    const sucio = texto !== versionComparada.content;
+    if (
+      sucio &&
+      !window.confirm(
+        `El editor tiene cambios sin guardar que se perderán al restaurar la versión ${versionComparada.version}. ¿Continuar?`,
+      )
+    ) {
+      return;
+    }
+    guardarMut.mutate(
+      {
+        texto: versionComparada.content,
+        nota: `Restaurada la versión ${versionComparada.version}`,
+      },
+      {
+        onSuccess: () => {
+          setTexto(versionComparada.content);
+          toast.success(
+            `Versión ${versionComparada.version} restaurada y guardada como nueva versión`,
+          );
+          setComparar("");
+        },
+        onError: (e: Error) => toast.error(e.message),
+      },
+    );
+  };
+
   return (
     <AppShell
       titulo={borrador.title}
@@ -223,9 +258,10 @@ function EditorBorrador() {
                 size="sm"
                 variant="outline"
                 className="mt-3"
-                onClick={() => setTexto(versionComparada.content)}
+                disabled={guardarMut.isPending || versionComparada.id === ultima?.id}
+                onClick={restaurarVersion}
               >
-                Restaurar este texto en el editor
+                Restaurar y guardar versión
               </Button>
             </div>
           )}

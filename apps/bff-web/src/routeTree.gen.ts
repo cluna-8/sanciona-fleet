@@ -13,8 +13,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AltaRouteImport } from './routes/alta'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as FuncionalidadesRouteImport } from './routes/funcionalidades'
 import { Route as HealthRouteImport } from './routes/health'
+import { Route as PlataformaRouteImport } from './routes/plataforma'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as TarifasRouteImport } from './routes/tarifas'
 import { Route as AuthenticatedAvisosRouteImport } from './routes/_authenticated/avisos'
 import { Route as AuthenticatedCalendarioRouteImport } from './routes/_authenticated/calendario'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
@@ -54,14 +57,29 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FuncionalidadesRoute = FuncionalidadesRouteImport.update({
+  id: '/funcionalidades',
+  path: '/funcionalidades',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HealthRoute = HealthRouteImport.update({
   id: '/health',
   path: '/health',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlataformaRoute = PlataformaRouteImport.update({
+  id: '/plataforma',
+  path: '/plataforma',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TarifasRoute = TarifasRouteImport.update({
+  id: '/tarifas',
+  path: '/tarifas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAvisosRoute = AuthenticatedAvisosRouteImport.update({
@@ -173,8 +191,11 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/alta': typeof AltaRoute
   '/auth': typeof AuthRoute
+  '/funcionalidades': typeof FuncionalidadesRoute
   '/health': typeof HealthRoute
+  '/plataforma': typeof PlataformaRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/tarifas': typeof TarifasRoute
   '/avisos': typeof AuthenticatedAvisosRoute
   '/calendario': typeof AuthenticatedCalendarioRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -199,8 +220,11 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/alta': typeof AltaRoute
   '/auth': typeof AuthRoute
+  '/funcionalidades': typeof FuncionalidadesRoute
   '/health': typeof HealthRoute
+  '/plataforma': typeof PlataformaRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/tarifas': typeof TarifasRoute
   '/avisos': typeof AuthenticatedAvisosRoute
   '/calendario': typeof AuthenticatedCalendarioRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -227,8 +251,11 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/alta': typeof AltaRoute
   '/auth': typeof AuthRoute
+  '/funcionalidades': typeof FuncionalidadesRoute
   '/health': typeof HealthRoute
+  '/plataforma': typeof PlataformaRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/tarifas': typeof TarifasRoute
   '/_authenticated/avisos': typeof AuthenticatedAvisosRoute
   '/_authenticated/calendario': typeof AuthenticatedCalendarioRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
@@ -255,8 +282,11 @@ export interface FileRouteTypes {
     | '/'
     | '/alta'
     | '/auth'
+    | '/funcionalidades'
     | '/health'
+    | '/plataforma'
     | '/reset-password'
+    | '/tarifas'
     | '/avisos'
     | '/calendario'
     | '/dashboard'
@@ -281,8 +311,11 @@ export interface FileRouteTypes {
     | '/'
     | '/alta'
     | '/auth'
+    | '/funcionalidades'
     | '/health'
+    | '/plataforma'
     | '/reset-password'
+    | '/tarifas'
     | '/avisos'
     | '/calendario'
     | '/dashboard'
@@ -308,8 +341,11 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/alta'
     | '/auth'
+    | '/funcionalidades'
     | '/health'
+    | '/plataforma'
     | '/reset-password'
+    | '/tarifas'
     | '/_authenticated/avisos'
     | '/_authenticated/calendario'
     | '/_authenticated/dashboard'
@@ -336,8 +372,11 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AltaRoute: typeof AltaRoute
   AuthRoute: typeof AuthRoute
+  FuncionalidadesRoute: typeof FuncionalidadesRoute
   HealthRoute: typeof HealthRoute
+  PlataformaRoute: typeof PlataformaRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  TarifasRoute: typeof TarifasRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -370,6 +409,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/funcionalidades': {
+      id: '/funcionalidades'
+      path: '/funcionalidades'
+      fullPath: '/funcionalidades'
+      preLoaderRoute: typeof FuncionalidadesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/health': {
       id: '/health'
       path: '/health'
@@ -377,11 +423,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HealthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/plataforma': {
+      id: '/plataforma'
+      path: '/plataforma'
+      fullPath: '/plataforma'
+      preLoaderRoute: typeof PlataformaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tarifas': {
+      id: '/tarifas'
+      path: '/tarifas'
+      fullPath: '/tarifas'
+      preLoaderRoute: typeof TarifasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/avisos': {
@@ -572,8 +632,11 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AltaRoute: AltaRoute,
   AuthRoute: AuthRoute,
+  FuncionalidadesRoute: FuncionalidadesRoute,
   HealthRoute: HealthRoute,
+  PlataformaRoute: PlataformaRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  TarifasRoute: TarifasRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

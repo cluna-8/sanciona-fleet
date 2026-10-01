@@ -98,3 +98,56 @@ Lo hecho en Etapa 1 (cimientos):
   `react-resizable-panels`).
 - CI en `.github/workflows/ci.yml`: typecheck, lint, build y `bun test`.
 - `bunx tsc --noEmit`, `eslint .` y `bun run build` en verde.
+
+---
+
+## Hallazgos de dos proyectos de Lovable de Jorge — 1 de octubre de 2026
+
+Jorge mantiene dos proyectos en Lovable, ambos conectados al **mismo**
+Supabase de producción (`yaqnvsijescamfjfncus`, confirmado comparando el
+Project ID embebido en el bundle JS de cada uno contra `apps/bff-web/.env`):
+
+- **PLATAFORMA SANCIONA** (`2fb9758d-5b85-4abf-b2df-491abbd60d7b`) — el mismo
+  proyecto del que nace `multas-export/`. Jorge siguió editándolo hasta el
+  17 de septiembre (después de eso, según memoria de sesiones previas, quedó
+  congelado). Cambios ahí que **no están reflejados en `apps/bff-web`**:
+  - El alta en autoservicio ya **no genera ni muestra la contraseña en
+    pantalla** (el hallazgo de seguridad #3 de la sección "12 de septiembre"
+    de este documento): ahora envía un correo de verificación y el usuario
+    establece su propia contraseña al abrir el enlace.
+  - Corregidos 3 problemas de seguridad: bypass con comodines en la
+    comprobación de usuario/correo en el acceso, y fuga entre empresas en
+    documentos/actuaciones/plazos/análisis/borradores/sanciones (un
+    expediente ya no podía vincularse a datos de otra organización).
+  - Añadido `sitemap.xml`.
+  - Se propuso integrar Paddle para cobro de las tres tarifas (49/99/199 €)
+    — **no activado**, quedó como pregunta sin responder en el chat.
+  - Dominio propio ya comprado y aplicado: **sancionafleet.com** — el
+    `README`/inventario que decía "ningún dominio propio configurado" ha
+    quedado desactualizado.
+
+  Ninguno de estos cambios se portó a `apps/bff-web` en esta sesión — quedan
+  pendientes de evaluar y traer conscientemente, no eran el objeto de esta
+  tarea.
+
+- **WEB SANCIONA** (`dd050dca-da83-426d-a551-80aecaecbe67`, publicado en
+  `sancionafleet.com`) — la landing de marketing de 4 páginas que ya se había
+  recreado (sin fotografía) en `apps/bff-web` el 24 de septiembre. Se
+  importaron sus 7 imágenes reales a `apps/bff-web/public/marketing/`:
+  `flota-deposito.jpg` y `cabina-documentos.jpg` (fotografía de stock, hero de
+  `/` y `/funcionalidades`) y `dashboard.jpg`, `sanciones.jpg`,
+  `calendario.jpg`, `documentos.jpg`, `informes.jpg` (capturas reales de la
+  app en `/plataforma`).
+
+**Organización de ejemplo "Transporte Levante"**: no existe con ese nombre
+exacto. La más parecida, y casi con toda seguridad a la que se refería la
+petición, es **"Transportes Levante Demo, S.L."** (CIF B98765432, id
+`11111111-1111-4111-8111-111111111111`, creada 25/08/2026), con 8 vehículos,
+10 conductores y 20-22 sanciones de ejemplo — visible en las propias capturas
+de `/plataforma` importadas arriba. **Ya existe en el Supabase de producción**
+(mismo proyecto que `apps/bff-web`), no hizo falta migrar nada. Queda
+pendiente de confirmación por el usuario: añadir a `clunacba@gmail.com` y
+`jorgelinares10@gmail.com` como miembros (`admin_empresa`) de esa
+organización para poder usarla en demostraciones — es una escritura directa
+en producción fuera del pipeline de CI/CD habitual, bloqueada por el sistema
+de permisos hasta que se confirme explícitamente.

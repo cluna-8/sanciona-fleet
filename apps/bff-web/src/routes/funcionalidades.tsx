@@ -143,8 +143,21 @@ const PERFILES = [
 function PaginaFuncionalidades() {
   return (
     <MarketingLayout>
-      <section className="border-b border-border bg-navy text-navy-foreground">
-        <div className="mx-auto max-w-6xl px-4 py-16 sm:py-20">
+      <section className="relative overflow-hidden border-b border-border bg-navy text-navy-foreground">
+        <img
+          src="/marketing/cabina-documentos.jpg"
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full object-cover opacity-45"
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(90deg, oklch(0.26 0.062 253) 8%, oklch(0.26 0.062 253 / 0.78) 58%, oklch(0.26 0.062 253 / 0.35) 100%)",
+          }}
+        />
+        <div className="relative mx-auto max-w-6xl px-4 py-16 sm:py-20">
           <p className="text-xs font-semibold uppercase tracking-widest text-accent">
             Funcionalidades y cómo funciona
           </p>

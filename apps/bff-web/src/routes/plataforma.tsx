@@ -31,6 +31,7 @@ const PANTALLAS = [
     titulo: "Resumen",
     texto:
       "La pantalla de entrada reúne el estado general de la flota: expedientes abiertos, plazos por vencer y lo que exige atención inmediata. Es el punto desde el que se decide por dónde empezar el día.",
+    img: "/marketing/dashboard.jpg",
   },
   {
     n: "02",
@@ -38,6 +39,7 @@ const PANTALLAS = [
     titulo: "Sanciones",
     texto:
       "El listado completo de expedientes, con su organismo, importe, vehículo y estado. Desde aquí se abre cada ficha para consultar el detalle, los comentarios internos y el historial de actuaciones.",
+    img: "/marketing/sanciones.jpg",
   },
   {
     n: "03",
@@ -45,6 +47,7 @@ const PANTALLAS = [
     titulo: "Calendario",
     texto:
       "Los vencimientos de pago, recurso y recargo situados en el tiempo, para ver de una sola vez la carga de trabajo de la semana y anticipar los plazos críticos.",
+    img: "/marketing/calendario.jpg",
   },
   {
     n: "04",
@@ -52,6 +55,7 @@ const PANTALLAS = [
     titulo: "Documentos",
     texto:
       "Notificaciones, resoluciones y justificantes archivados junto al expediente al que pertenecen, guardados en almacenamiento privado de la empresa.",
+    img: "/marketing/documentos.jpg",
   },
   {
     n: "05",
@@ -59,6 +63,7 @@ const PANTALLAS = [
     titulo: "Informes",
     texto:
       "Una lectura agregada de lo ocurrido, útil para revisar la evolución de las sanciones de la flota y detectar dónde se concentran.",
+    img: "/marketing/informes.jpg",
   },
 ];
 
@@ -80,18 +85,31 @@ function PaginaPlataforma() {
       </section>
 
       <section className="mx-auto max-w-6xl px-4 py-16">
-        <div className="space-y-10">
-          {PANTALLAS.map((p) => (
-            <div key={p.n} className="flex gap-5 border-b border-border pb-10 last:border-0">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center bg-navy">
-                <p.icono className="h-5 w-5 text-accent" />
+        <div className="space-y-16">
+          {PANTALLAS.map((p, i) => (
+            <div
+              key={p.n}
+              className={`flex flex-col gap-8 border-b border-border pb-16 last:border-0 lg:items-center lg:gap-12 ${
+                i % 2 === 1 ? "lg:flex-row-reverse" : "lg:flex-row"
+              }`}
+            >
+              <div className="lg:w-1/2">
+                <img
+                  src={p.img}
+                  alt={`Captura de la pantalla ${p.titulo} de Sanciona Fleet`}
+                  className="w-full border border-border shadow-sm"
+                  loading="lazy"
+                />
               </div>
-              <div>
-                <span className="text-xs font-semibold text-accent">{p.n}</span>
+              <div className="lg:w-1/2">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center bg-navy">
+                  <p.icono className="h-5 w-5 text-accent" />
+                </div>
+                <span className="mt-4 block text-xs font-semibold text-accent">{p.n}</span>
                 <h3 className="mt-1 font-display text-lg font-bold uppercase tracking-tight">
                   {p.titulo}
                 </h3>
-                <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{p.texto}</p>
+                <p className="mt-2 max-w-md text-sm text-muted-foreground">{p.texto}</p>
               </div>
             </div>
           ))}
